@@ -56,7 +56,7 @@ def test_load_ignores_unknown_fields(tmp_path):
 def test_add_finding(tmp_path):
     ws = Workspace(tmp_path, target="app")
     ws.create()
-    ws.add_finding(Finding(id="f1", title="Cleartext", severity="high", tool="semgrep"))
+    ws.add_finding(Finding(id="f1", title="Cleartext", severity="high", tool="opengrep"))
     loaded = ws.load()
     assert loaded.findings[0]["id"] == "f1"
     assert loaded.findings[0]["severity"] == "high"

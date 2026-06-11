@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from ...models import Category, Platform
-from ...process import RunResult
 from ..base import Adapter
 
 

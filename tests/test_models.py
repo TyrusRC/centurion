@@ -22,7 +22,7 @@ def test_toolstatus_to_dict_roundtrip():
 
 
 def test_finding_defaults():
-    f = Finding(id="f1", title="Cleartext traffic", severity=Severity.HIGH.value, tool="semgrep")
+    f = Finding(id="f1", title="Cleartext traffic", severity=Severity.HIGH.value, tool="opengrep")
     assert f.detail == ""
     assert f.location is None
     assert f.mastg_refs == []

@@ -133,9 +133,11 @@ class WorkspaceProcessManager:
 
     def start(self, handle: str, command: list[str]) -> ManagedProcess:
         existing = self._find(handle)
+        # Spawn the replacement first: if it fails, the existing process and the
+        # persisted handle are left untouched rather than orphaned.
+        proc = self._spawn(command)
         if existing is not None:
             self._kill(existing["pid"])
-        proc = self._spawn(command)
         session = self._workspace.load()
         session.processes = [p for p in session.processes if p["handle"] != handle]
         session.processes.append({"handle": handle, "pid": proc.pid, "command": list(command)})

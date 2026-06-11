@@ -1,3 +1,5 @@
+import pytest
+
 from centurion.process import ManagedProcess, ProcessManager, WorkspaceProcessManager
 from centurion.session import Workspace
 
@@ -107,3 +109,23 @@ def test_workspace_pm_reusing_handle_signals_previous(tmp_path):
     pm.start("proxy", ["mitmdump"])  # reuse handle -> previous pid signalled
     assert killed == [10]
     assert pm.list() == [{"handle": "proxy", "pid": 11, "command": ["mitmdump"]}]
+
+
+def test_workspace_pm_failed_respawn_preserves_existing(tmp_path):
+    ws = _ws(tmp_path)
+    killed = []
+    calls = {"n": 0}
+
+    def spawn(command):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return FakeProc(pid=5)
+        raise FileNotFoundError("mitmdump")
+
+    pm = WorkspaceProcessManager(ws, spawn=spawn, kill=lambda pid: killed.append(pid))
+    pm.start("proxy", ["mitmdump"])
+    # A failed respawn must not kill the existing process nor corrupt the handle.
+    with pytest.raises(FileNotFoundError):
+        pm.start("proxy", ["mitmdump"])
+    assert killed == []
+    assert pm.list() == [{"handle": "proxy", "pid": 5, "command": ["mitmdump"]}]
