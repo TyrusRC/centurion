@@ -92,6 +92,9 @@ class ProcessManager:
         self._procs: dict[str, Any] = {}
 
     def start(self, handle: str, command: list[str]) -> ManagedProcess:
+        existing = self._procs.get(handle)
+        if existing is not None:
+            existing.terminate()
         proc = self._spawn(command)
         self._procs[handle] = proc
         return ManagedProcess(handle=handle, pid=proc.pid, command=list(command))

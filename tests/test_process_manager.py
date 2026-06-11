@@ -42,3 +42,20 @@ def test_stop_terminates_and_removes():
 def test_stop_unknown_handle_returns_false():
     pm = ProcessManager(spawn=lambda command: FakeProc(pid=1))
     assert pm.stop("ghost") is False
+
+
+def test_start_same_handle_terminates_previous():
+    procs = []
+
+    def spawn(command):
+        p = FakeProc(pid=len(procs) + 1)
+        procs.append(p)
+        return p
+
+    pm = ProcessManager(spawn=spawn)
+    pm.start("scrcpy", ["scrcpy"])
+    pm.start("scrcpy", ["scrcpy"])  # reuse handle
+
+    assert procs[0].terminated is True   # first one was terminated
+    assert procs[1].terminated is False  # second is live
+    assert pm.list() == ["scrcpy"]
