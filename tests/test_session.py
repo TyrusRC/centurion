@@ -40,3 +40,14 @@ def test_add_artifact(tmp_path: Path):
     loaded = ws.load()
     assert loaded.artifacts[0]["id"] == "a1"
     assert isinstance(loaded, Session)
+
+
+def test_load_ignores_unknown_fields(tmp_path):
+    import json
+    ws = Workspace(tmp_path, target="app")
+    ws.create()
+    data = json.loads(ws.session_file.read_text())
+    data["future_field"] = "ignore me"
+    ws.session_file.write_text(json.dumps(data))
+    loaded = ws.load()  # must not raise
+    assert loaded.target == "app"

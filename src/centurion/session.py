@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Any
 
@@ -51,6 +51,8 @@ class Workspace:
 
     def load(self) -> Session:
         data = json.loads(self.session_file.read_text())
+        known = {f.name for f in fields(Session)}
+        data = {k: v for k, v in data.items() if k in known}
         return Session(**data)
 
     def save(self, session: Session) -> None:
