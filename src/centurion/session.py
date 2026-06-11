@@ -7,7 +7,7 @@ from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Any
 
-from .models import Artifact
+from .models import Artifact, Finding
 
 
 def default_root() -> Path:
@@ -28,6 +28,7 @@ class Session:
     device: str | None = None
     runs: list[dict[str, Any]] = field(default_factory=list)
     artifacts: list[dict[str, Any]] = field(default_factory=list)
+    findings: list[dict[str, Any]] = field(default_factory=list)
     processes: list[dict[str, Any]] = field(default_factory=list)
 
 
@@ -66,4 +67,9 @@ class Workspace:
     def add_artifact(self, artifact: Artifact) -> None:
         session = self.load()
         session.artifacts.append(artifact.to_dict())
+        self.save(session)
+
+    def add_finding(self, finding: Finding) -> None:
+        session = self.load()
+        session.findings.append(finding.to_dict())
         self.save(session)
