@@ -16,7 +16,8 @@ not reimplement" and "detect + manual install hint, never auto-install" philosop
 - **Tool breadth:** broad MASTG Android sweep (~9–10 new adapters).
 - **Frida exposure:** curated, vetted script library bundled in the package, plus raw
   passthrough.
-- **Semgrep ruleset:** detect presence; if missing, print a manual install hint. Never
+- **Static scanner:** Opengrep (the open-source Semgrep fork; CLI/rule-compatible, uses a
+  `scan` subcommand). Detect presence; if missing, print a manual install hint. Never
   auto-fetch/clone. `static_scan` takes a rules path (default `~/.centurion/rules`).
 - **Long-running state:** persist process handles (and findings) to the workspace; no
   daemon (Approach A).
@@ -30,7 +31,7 @@ operations that shell out via the injected `Runner` and parse to structured mode
 
 | Category | Adapters | Key operations |
 |---|---|---|
-| static | apktool (MASTG-TOOL-0011), dex2jar, apksigner, semgrep | decode manifest/resources; dex→jar; verify signature scheme; `scan(target, rules) -> Finding[]` |
+| static | apktool (MASTG-TOOL-0011), dex2jar, apksigner, opengrep | decode manifest/resources; dex→jar; verify signature scheme; `scan(target, rules) -> Finding[]` |
 | recon | radare2 (MASTG-TOOL-0028), strings | `info` / `strings` -> text + `Artifact` |
 | dynamic | objection (MASTG-TOOL-0029), drozer (MASTG-TOOL-0015) | `objection_run(commands)`; drozer module run |
 | network | mitmproxy, tcpdump | proxy lifecycle (section 2); on-device/host capture |
@@ -38,7 +39,7 @@ operations that shell out via the injected `Runner` and parse to structured mode
 `AdbAdapter` gains `packages() -> list[str]` and `pull_apk(package, out_dir) -> Artifact`
 to back `app_list` / `app_pull`.
 
-semgrep is `platform=generic`, `category=static`; radare2/strings `category=recon`.
+opengrep is `platform=generic`, `category=static`; radare2/strings `category=recon`.
 
 ## 2. Session / state extensions
 
@@ -74,7 +75,7 @@ testing only.
 ## 4. MCP surface additions
 
 Tools (all return structured JSON):
-`app_list`, `app_pull`, `static_decode` (apktool), `static_scan` (semgrep -> findings),
+`app_list`, `app_pull`, `static_decode` (apktool), `static_scan` (opengrep -> findings),
 `objection_run`, `frida_list_scripts`, `frida_run_named_script`, `frida_run_script`,
 `ssl_unpin`, `proxy_start`, `proxy_stop`, `proxy_flows`, `recon_strings`,
 `recon_radare2`, `findings_list`.
@@ -87,7 +88,7 @@ so their handles survive across MCP invocations.
 ## 5. Skills + subagents (`.claude/`)
 
 Skills:
-- **centurion-static-analysis** — pull APK -> decode/decompile -> semgrep scan -> record
+- **centurion-static-analysis** — pull APK -> decode/decompile -> opengrep scan -> record
   findings.
 - **centurion-dynamic-analysis** — frida/objection attach, named-script hooks, `ssl_unpin`.
 - **centurion-network-intercept** — `proxy_start` -> CA-cert install guidance ->
@@ -112,7 +113,7 @@ Skills/agents reference only MCP tools that exist.
 ## 7. Testing strategy
 
 Same `FakeRunner` discipline as Phase 1:
-- Command builders + output parsers tested with canned tool output: semgrep JSON ->
+- Command builders + output parsers tested with canned tool output: opengrep JSON ->
   `Finding[]`; mitmproxy flow dump -> flow summaries; objection/drozer output parsing;
   apktool/apksigner output parsing.
 - `ScriptLibrary` tested by listing the bundled files and resolving one by name.

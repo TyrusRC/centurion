@@ -48,7 +48,7 @@ def default_registry(runner: Runner | None = None) -> Registry:
     from .adapters.generic.frida import FridaAdapter
     from .adapters.generic.mitmproxy import MitmproxyAdapter
     from .adapters.generic.radare2 import Radare2Adapter
-    from .adapters.generic.semgrep import SemgrepAdapter
+    from .adapters.generic.opengrep import OpengrepAdapter
     from .adapters.generic.strings import StringsAdapter
     from .adapters.generic.tcpdump import TcpdumpAdapter
 
@@ -61,7 +61,7 @@ def default_registry(runner: Runner | None = None) -> Registry:
             ApktoolAdapter(runner),
             Dex2jarAdapter(runner),
             ApksignerAdapter(runner),
-            SemgrepAdapter(runner),
+            OpengrepAdapter(runner),
             Radare2Adapter(runner),
             StringsAdapter(runner),
             ObjectionAdapter(runner),

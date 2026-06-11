@@ -39,7 +39,7 @@ def test_default_registry_has_all_phase2_adapters():
     names = {a.name for a in default_registry(FakeRunner()).all()}
     assert names == {
         "adb", "scrcpy", "jadx", "frida",
-        "apktool", "dex2jar", "apksigner", "semgrep",
+        "apktool", "dex2jar", "apksigner", "opengrep",
         "radare2", "strings", "objection", "drozer",
         "mitmproxy", "tcpdump",
     }
