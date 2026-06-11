@@ -6,7 +6,9 @@ with canned output and never touch a real device.
 
 from __future__ import annotations
 
+import os
 import shutil
+import signal
 import subprocess
 from dataclasses import asdict, dataclass
 from typing import Any, Callable, Protocol
@@ -109,3 +111,54 @@ class ProcessManager:
 
     def list(self) -> list[str]:
         return list(self._procs)
+
+
+def _real_kill(pid: int) -> None:
+    os.kill(pid, signal.SIGTERM)
+
+
+class WorkspaceProcessManager:
+    """Tracks long-running tools, persisting handles to the workspace session
+    so they survive across separate MCP server invocations (no daemon)."""
+
+    def __init__(
+        self,
+        workspace,
+        spawn: Callable[[list[str]], Any] | None = None,
+        kill: Callable[[int], None] | None = None,
+    ) -> None:
+        self._workspace = workspace
+        self._spawn = spawn or _real_spawn
+        self._kill = kill or _real_kill
+
+    def start(self, handle: str, command: list[str]) -> ManagedProcess:
+        existing = self._find(handle)
+        # Spawn the replacement first: if it fails, the existing process and the
+        # persisted handle are left untouched rather than orphaned.
+        proc = self._spawn(command)
+        if existing is not None:
+            self._kill(existing["pid"])
+        session = self._workspace.load()
+        session.processes = [p for p in session.processes if p["handle"] != handle]
+        session.processes.append({"handle": handle, "pid": proc.pid, "command": list(command)})
+        self._workspace.save(session)
+        return ManagedProcess(handle=handle, pid=proc.pid, command=list(command))
+
+    def stop(self, handle: str) -> bool:
+        entry = self._find(handle)
+        if entry is None:
+            return False
+        self._kill(entry["pid"])
+        session = self._workspace.load()
+        session.processes = [p for p in session.processes if p["handle"] != handle]
+        self._workspace.save(session)
+        return True
+
+    def list(self) -> list[dict]:
+        return self._workspace.load().processes
+
+    def _find(self, handle: str) -> dict | None:
+        for entry in self._workspace.load().processes:
+            if entry["handle"] == handle:
+                return entry
+        return None

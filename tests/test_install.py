@@ -1,5 +1,7 @@
 from centurion.adapters.android.adb import AdbAdapter
-from centurion.install import plan_install
+from centurion.adapters.generic.frida import FridaAdapter
+from centurion.install import _selects, plan_install
+from centurion.models import ToolStatus
 from centurion.process import FakeRunner
 from centurion.registry import Registry
 
@@ -26,3 +28,12 @@ def test_plan_install_reports_missing_tool():
 def test_plan_install_unknown_group_is_empty():
     reg = Registry([AdbAdapter(FakeRunner())])
     assert plan_install(reg, "ios") == []  # no ios adapters in Phase 1 registry
+
+
+def test_selects_network_group_matches_category_not_platform():
+    # A network tool: platform generic, category network.
+    net = ToolStatus(name="mitmproxy", installed=False, platform="generic", category="network")
+    assert _selects(net, "network") is True
+    # A generic-platform non-network tool must NOT match the network group.
+    other = ToolStatus(name="frida", installed=False, platform="generic", category="dynamic")
+    assert _selects(other, "network") is False

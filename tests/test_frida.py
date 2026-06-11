@@ -39,4 +39,4 @@ def test_frida_parse_ps_list():
 def test_default_registry_has_all_phase1_adapters():
     runner = FakeRunner()
     names = {a.name for a in default_registry(runner).all()}
-    assert names == {"adb", "scrcpy", "jadx", "frida"}
+    assert {"adb", "scrcpy", "jadx", "frida"}.issubset(names)

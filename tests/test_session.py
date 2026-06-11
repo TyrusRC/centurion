@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from centurion.models import Artifact
+from centurion.models import Artifact, Finding
 from centurion.session import Session, Workspace
 
 
@@ -51,3 +51,24 @@ def test_load_ignores_unknown_fields(tmp_path):
     ws.session_file.write_text(json.dumps(data))
     loaded = ws.load()  # must not raise
     assert loaded.target == "app"
+
+
+def test_add_finding(tmp_path):
+    ws = Workspace(tmp_path, target="app")
+    ws.create()
+    ws.add_finding(Finding(id="f1", title="Cleartext", severity="high", tool="opengrep"))
+    loaded = ws.load()
+    assert loaded.findings[0]["id"] == "f1"
+    assert loaded.findings[0]["severity"] == "high"
+
+
+def test_findings_defaults_empty_for_old_sessions(tmp_path):
+    import json
+    ws = Workspace(tmp_path, target="app")
+    ws.create()
+    # Simulate an older session.json written before `findings` existed.
+    data = json.loads(ws.session_file.read_text())
+    data.pop("findings", None)
+    ws.session_file.write_text(json.dumps(data))
+    loaded = ws.load()
+    assert loaded.findings == []
