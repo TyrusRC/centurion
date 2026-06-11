@@ -12,10 +12,10 @@ _CATEGORIES = {"device-qa", "static", "dynamic", "network", "recon"}
 def _selects(status: ToolStatus, group: str) -> bool:
     if group == "all":
         return True
-    if group in _PLATFORMS:
-        return status.platform == group
     if group in _CATEGORIES:
         return status.category == group
+    if group in _PLATFORMS:
+        return status.platform == group
     return False
 
 
