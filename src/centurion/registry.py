@@ -17,7 +17,10 @@ class Registry:
         self._adapters[adapter.name] = adapter
 
     def get(self, name: str) -> Adapter:
-        return self._adapters[name]
+        try:
+            return self._adapters[name]
+        except KeyError:
+            raise KeyError(f"No adapter registered for '{name}'") from None
 
     def all(self) -> list[Adapter]:
         return list(self._adapters.values())

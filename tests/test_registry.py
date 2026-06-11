@@ -1,3 +1,5 @@
+import pytest
+
 from centurion.adapters.android.adb import AdbAdapter
 from centurion.models import Category, Platform
 from centurion.process import FakeRunner
@@ -25,3 +27,9 @@ def test_registry_doctor_returns_statuses():
     assert len(statuses) == 1
     assert statuses[0].name == "adb"
     assert statuses[0].installed is True
+
+
+def test_registry_get_unknown_raises_clear_error():
+    reg = Registry([])
+    with pytest.raises(KeyError, match="No adapter registered for 'ghost'"):
+        reg.get("ghost")
