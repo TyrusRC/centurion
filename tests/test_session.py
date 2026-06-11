@@ -1,0 +1,42 @@
+from pathlib import Path
+
+from centurion.models import Artifact
+from centurion.session import Session, Workspace
+
+
+def test_create_workspace_writes_session_json(tmp_path: Path):
+    ws = Workspace(tmp_path, target="Acme Banking", platform="android")
+    session = ws.create()
+
+    assert ws.slug == "acme-banking"
+    assert ws.dir == tmp_path / "acme-banking"
+    assert ws.artifacts_dir.is_dir()
+    assert ws.session_file.exists()
+    assert session.target == "Acme Banking"
+    assert session.platform == "android"
+    assert session.runs == []
+
+
+def test_create_is_idempotent(tmp_path: Path):
+    ws = Workspace(tmp_path, target="app")
+    ws.create()
+    ws.record_run("adb", ["adb", "devices"], "ok")
+    reopened = ws.create()  # must not clobber
+    assert len(reopened.runs) == 1
+
+
+def test_record_run_appends(tmp_path: Path):
+    ws = Workspace(tmp_path, target="app")
+    ws.create()
+    ws.record_run("jadx", ["jadx", "app.apk"], "ok")
+    loaded = ws.load()
+    assert loaded.runs == [{"tool": "jadx", "command": ["jadx", "app.apk"], "status": "ok"}]
+
+
+def test_add_artifact(tmp_path: Path):
+    ws = Workspace(tmp_path, target="app")
+    ws.create()
+    ws.add_artifact(Artifact(id="a1", kind="decompiled", path="/tmp/out", tool="jadx"))
+    loaded = ws.load()
+    assert loaded.artifacts[0]["id"] == "a1"
+    assert isinstance(loaded, Session)
