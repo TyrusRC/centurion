@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
-from ...models import Category, Platform
+from ...models import Artifact, Category, Platform
 from ...process import RunResult
 from ..base import Adapter
 
@@ -58,3 +59,30 @@ class AdbAdapter(Adapter):
                     model = token.split(":", 1)[1]
             devices.append(AndroidDevice(serial=serial, state=state, model=model))
         return devices
+
+    def packages(self) -> list[str]:
+        result = self.runner.run(["adb", "shell", "pm", "list", "packages"], timeout=30)
+        return [
+            line.split("package:", 1)[1].strip()
+            for line in result.stdout.splitlines()
+            if line.startswith("package:")
+        ]
+
+    def pull_apk(self, package: str, out_dir: str) -> Artifact:
+        path_result = self.runner.run(["adb", "shell", "pm", "path", package], timeout=30)
+        remote = None
+        for line in path_result.stdout.splitlines():
+            if line.startswith("package:"):
+                remote = line.split("package:", 1)[1].strip()
+                break
+        if not remote:
+            raise RuntimeError(f"package not found: {package}")
+        dest = str(Path(out_dir) / f"{package}.apk")
+        self.runner.run(["adb", "pull", remote, dest], timeout=120)
+        return Artifact(
+            id=f"apk-{package}",
+            kind="binary",
+            path=dest,
+            tool="adb",
+            label=f"{package}.apk",
+        )
