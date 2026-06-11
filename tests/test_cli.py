@@ -54,3 +54,12 @@ def test_install_all_present_reports_nothing_missing(monkeypatch):
     result = runner.invoke(cli_app.app, ["install", "--group", "android"])
     assert result.exit_code == 0
     assert "installed" in result.stdout.lower()
+
+
+def test_device_list_uses_table_headers(monkeypatch):
+    monkeypatch.setattr(cli_app, "get_registry", _fake_registry)
+    result = runner.invoke(cli_app.app, ["device", "list"])
+    assert result.exit_code == 0
+    assert "Serial" in result.stdout
+    assert "State" in result.stdout
+    assert "emulator-5554" in result.stdout

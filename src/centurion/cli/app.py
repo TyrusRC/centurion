@@ -65,9 +65,11 @@ def install(
 @device_app.command("list")
 def device_list() -> None:
     """List connected Android devices."""
+    table = Table("Serial", "State", "Model")
     adb = get_registry().get("adb")
     for dev in adb.devices():
-        console.print(f"{dev.serial}\t{dev.state}\t{dev.model or '-'}")
+        table.add_row(dev.serial, dev.state, dev.model or "-")
+    console.print(table)
 
 
 if __name__ == "__main__":
