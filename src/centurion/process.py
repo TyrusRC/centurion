@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import shutil
 import subprocess
-from dataclasses import dataclass
-from typing import Protocol
+from dataclasses import asdict, dataclass
+from typing import Any, Callable, Protocol
 
 
 @dataclass
@@ -68,3 +68,41 @@ class FakeRunner:
 
     def which(self, binary: str) -> str | None:
         return self._paths.get(binary)
+
+
+@dataclass
+class ManagedProcess:
+    handle: str
+    pid: int
+    command: list[str]
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+def _real_spawn(command: list[str]):
+    return subprocess.Popen(command)
+
+
+class ProcessManager:
+    """Tracks long-running background tools (scrcpy, mitmproxy, frida-server)."""
+
+    def __init__(self, spawn: Callable[[list[str]], Any] | None = None) -> None:
+        self._spawn = spawn or _real_spawn
+        self._procs: dict[str, Any] = {}
+
+    def start(self, handle: str, command: list[str]) -> ManagedProcess:
+        proc = self._spawn(command)
+        self._procs[handle] = proc
+        return ManagedProcess(handle=handle, pid=proc.pid, command=list(command))
+
+    def stop(self, handle: str) -> bool:
+        proc = self._procs.get(handle)
+        if proc is None:
+            return False
+        proc.terminate()
+        del self._procs[handle]
+        return True
+
+    def list(self) -> list[str]:
+        return list(self._procs)
