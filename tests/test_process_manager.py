@@ -1,4 +1,5 @@
-from centurion.process import ManagedProcess, ProcessManager
+from centurion.process import ManagedProcess, ProcessManager, WorkspaceProcessManager
+from centurion.session import Workspace
 
 
 class FakeProc:
@@ -59,3 +60,50 @@ def test_start_same_handle_terminates_previous():
     assert procs[0].terminated is True   # first one was terminated
     assert procs[1].terminated is False  # second is live
     assert pm.list() == ["scrcpy"]
+
+
+def _ws(tmp_path):
+    ws = Workspace(tmp_path, target="app")
+    ws.create()
+    return ws
+
+
+def test_workspace_pm_start_persists_handle(tmp_path):
+    ws = _ws(tmp_path)
+    pm = WorkspaceProcessManager(ws, spawn=lambda command: FakeProc(pid=999), kill=lambda pid: None)
+    managed = pm.start("proxy", ["mitmdump", "-p", "8080"])
+    assert managed.pid == 999
+    # Persisted to session.json, visible to a fresh manager (simulates new MCP process).
+    fresh = WorkspaceProcessManager(ws, spawn=lambda c: FakeProc(pid=1), kill=lambda pid: None)
+    assert fresh.list() == [{"handle": "proxy", "pid": 999, "command": ["mitmdump", "-p", "8080"]}]
+
+
+def test_workspace_pm_stop_signals_and_removes(tmp_path):
+    ws = _ws(tmp_path)
+    killed = []
+    pm = WorkspaceProcessManager(ws, spawn=lambda c: FakeProc(pid=42), kill=lambda pid: killed.append(pid))
+    pm.start("proxy", ["mitmdump"])
+    assert pm.stop("proxy") is True
+    assert killed == [42]
+    assert pm.list() == []
+
+
+def test_workspace_pm_stop_unknown_returns_false(tmp_path):
+    ws = _ws(tmp_path)
+    pm = WorkspaceProcessManager(ws, spawn=lambda c: FakeProc(pid=1), kill=lambda pid: None)
+    assert pm.stop("ghost") is False
+
+
+def test_workspace_pm_reusing_handle_signals_previous(tmp_path):
+    ws = _ws(tmp_path)
+    killed = []
+    pids = iter([10, 11])
+    pm = WorkspaceProcessManager(
+        ws,
+        spawn=lambda c: FakeProc(pid=next(pids)),
+        kill=lambda pid: killed.append(pid),
+    )
+    pm.start("proxy", ["mitmdump"])
+    pm.start("proxy", ["mitmdump"])  # reuse handle -> previous pid signalled
+    assert killed == [10]
+    assert pm.list() == [{"handle": "proxy", "pid": 11, "command": ["mitmdump"]}]
