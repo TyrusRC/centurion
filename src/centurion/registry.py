@@ -36,11 +36,21 @@ class Registry:
 
 
 def default_registry(runner: Runner | None = None) -> Registry:
-    """Build the registry with all Phase 1 adapters."""
+    """Build the registry with all currently-implemented adapters."""
     from .adapters.android.adb import AdbAdapter
+    from .adapters.android.apksigner import ApksignerAdapter
+    from .adapters.android.apktool import ApktoolAdapter
+    from .adapters.android.dex2jar import Dex2jarAdapter
+    from .adapters.android.drozer import DrozerAdapter
     from .adapters.android.jadx import JadxAdapter
+    from .adapters.android.objection import ObjectionAdapter
     from .adapters.android.scrcpy import ScrcpyAdapter
     from .adapters.generic.frida import FridaAdapter
+    from .adapters.generic.mitmproxy import MitmproxyAdapter
+    from .adapters.generic.radare2 import Radare2Adapter
+    from .adapters.generic.semgrep import SemgrepAdapter
+    from .adapters.generic.strings import StringsAdapter
+    from .adapters.generic.tcpdump import TcpdumpAdapter
 
     return Registry(
         [
@@ -48,5 +58,15 @@ def default_registry(runner: Runner | None = None) -> Registry:
             ScrcpyAdapter(runner),
             JadxAdapter(runner),
             FridaAdapter(runner),
+            ApktoolAdapter(runner),
+            Dex2jarAdapter(runner),
+            ApksignerAdapter(runner),
+            SemgrepAdapter(runner),
+            Radare2Adapter(runner),
+            StringsAdapter(runner),
+            ObjectionAdapter(runner),
+            DrozerAdapter(runner),
+            MitmproxyAdapter(runner),
+            TcpdumpAdapter(runner),
         ]
     )

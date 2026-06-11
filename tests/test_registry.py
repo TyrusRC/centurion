@@ -3,7 +3,7 @@ import pytest
 from centurion.adapters.android.adb import AdbAdapter
 from centurion.models import Category, Platform
 from centurion.process import FakeRunner
-from centurion.registry import Registry
+from centurion.registry import Registry, default_registry
 
 
 def test_registry_register_and_get():
@@ -33,3 +33,13 @@ def test_registry_get_unknown_raises_clear_error():
     reg = Registry([])
     with pytest.raises(KeyError, match="No adapter registered for 'ghost'"):
         reg.get("ghost")
+
+
+def test_default_registry_has_all_phase2_adapters():
+    names = {a.name for a in default_registry(FakeRunner()).all()}
+    assert names == {
+        "adb", "scrcpy", "jadx", "frida",
+        "apktool", "dex2jar", "apksigner", "semgrep",
+        "radare2", "strings", "objection", "drozer",
+        "mitmproxy", "tcpdump",
+    }
