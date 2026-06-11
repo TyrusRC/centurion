@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.table import Table
 
 from .. import __version__
+from ..install import plan_install
 from ..registry import Registry, default_registry
 
 app = typer.Typer(help="Centurion — mobile QA + pentest toolkit.")
@@ -41,6 +42,24 @@ def doctor() -> None:
             status.version or "-",
         )
     console.print(table)
+
+
+@app.command()
+def install(
+    group: str = typer.Option(
+        "all",
+        "--group",
+        help="Tool group: all | android | ios | generic | network | static | dynamic | device-qa | recon",
+    ),
+) -> None:
+    """List tools in a group that are not yet installed, with install hints."""
+    missing = plan_install(get_registry(), group)
+    if not missing:
+        console.print(f"All tools in group '{group}' are already installed.")
+        return
+    console.print(f"Missing tools in group '{group}':")
+    for status in missing:
+        console.print(f"  {status.name}: {status.install_hint}")
 
 
 @device_app.command("list")
