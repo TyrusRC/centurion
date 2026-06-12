@@ -7,6 +7,8 @@ from centurion.adapters.generic.mitmproxy import MitmproxyAdapter
 from centurion.adapters.generic.opengrep import OpengrepAdapter
 from centurion.adapters.generic.strings import StringsAdapter
 from centurion.adapters.generic.radare2 import Radare2Adapter
+from centurion.adapters.ios.idevice import IdeviceAdapter
+from centurion.adapters.ios.ideviceinstaller import IdeviceinstallerAdapter
 from centurion.models import Finding
 from centurion.process import FakeRunner, WorkspaceProcessManager
 from centurion.registry import Registry
@@ -258,3 +260,25 @@ def test_skills_and_agents_reference_only_shipped_tools():
         referenced |= set(pattern.findall(md.read_text()))
     unknown = referenced - shipped
     assert not unknown, f"skills/agents reference unshipped tools: {sorted(unknown)}"
+
+
+def test_ios_device_list_tool(monkeypatch):
+    fake = FakeRunner()
+    fake.register("idevice_id -l", stdout="00008030-AAAA\n", path="/usr/bin/idevice_id")
+    fake.register("ideviceinfo -u 00008030-AAAA -k DeviceName", stdout="Alice iPhone\n")
+    fake.register("ideviceinfo -u 00008030-AAAA -k ProductVersion", stdout="16.4\n")
+    monkeypatch.setattr(server, "get_registry", lambda: Registry([IdeviceAdapter(fake)]))
+    assert server.ios_device_list() == [
+        {"udid": "00008030-AAAA", "name": "Alice iPhone", "ios_version": "16.4"}
+    ]
+
+
+def test_ios_app_list_tool(monkeypatch):
+    out = (
+        "CFBundleIdentifier, CFBundleVersion, CFBundleDisplayName\n"
+        "com.acme.bank, 1.0, Acme Bank\n"
+    )
+    fake = FakeRunner()
+    fake.register("ideviceinstaller -l", stdout=out, path="/usr/bin/ideviceinstaller")
+    monkeypatch.setattr(server, "get_registry", lambda: Registry([IdeviceinstallerAdapter(fake)]))
+    assert server.ios_app_list() == ["com.acme.bank"]

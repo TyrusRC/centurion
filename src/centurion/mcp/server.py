@@ -161,6 +161,18 @@ def findings_list(target: str) -> list[dict]:
     return get_workspace(target).load().findings
 
 
+@mcp.tool()
+def ios_device_list() -> list[dict]:
+    """List connected iOS devices (udid, name, ios_version)."""
+    return [d.to_dict() for d in get_registry().get("idevice").devices()]
+
+
+@mcp.tool()
+def ios_app_list() -> list[str]:
+    """List installed app bundle IDs on the connected iOS device."""
+    return get_registry().get("ideviceinstaller").apps()
+
+
 @mcp.resource("centurion://scripts")
 def scripts_resource() -> list[dict]:
     """The bundled Frida script catalog."""
