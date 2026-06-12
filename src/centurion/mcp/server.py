@@ -173,6 +173,15 @@ def ios_app_list() -> list[str]:
     return get_registry().get("ideviceinstaller").apps()
 
 
+@mcp.tool()
+def ios_app_pull(bundle_id: str, target: str) -> dict:
+    """Pull a decrypted IPA (frida-ios-dump) into the workspace; records an artifact."""
+    ws = get_workspace(target)
+    artifact = get_registry().get("frida-ios-dump").dump(bundle_id, str(ws.artifacts_dir))
+    ws.add_artifact(artifact)
+    return artifact.to_dict()
+
+
 @mcp.resource("centurion://scripts")
 def scripts_resource() -> list[dict]:
     """The bundled Frida script catalog."""

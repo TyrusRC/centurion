@@ -9,6 +9,7 @@ from centurion.adapters.generic.strings import StringsAdapter
 from centurion.adapters.generic.radare2 import Radare2Adapter
 from centurion.adapters.ios.idevice import IdeviceAdapter
 from centurion.adapters.ios.ideviceinstaller import IdeviceinstallerAdapter
+from centurion.adapters.ios.frida_ios_dump import FridaIosDumpAdapter
 from centurion.models import Finding
 from centurion.process import FakeRunner, WorkspaceProcessManager
 from centurion.registry import Registry
@@ -282,3 +283,15 @@ def test_ios_app_list_tool(monkeypatch):
     fake.register("ideviceinstaller -l", stdout=out, path="/usr/bin/ideviceinstaller")
     monkeypatch.setattr(server, "get_registry", lambda: Registry([IdeviceinstallerAdapter(fake)]))
     assert server.ios_app_list() == ["com.acme.bank"]
+
+
+def test_ios_app_pull_records_artifact(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    fake = FakeRunner()
+    fake.register("frida-ios-dump", stdout="Done\n")
+    monkeypatch.setattr(server, "get_registry", lambda: Registry([FridaIosDumpAdapter(fake)]))
+    result = server.ios_app_pull("com.acme.bank", "AcmeIOS")
+    assert result["kind"] == "binary"
+    assert result["path"].endswith("com.acme.bank.ipa")
+    assert server.get_workspace("AcmeIOS").load().artifacts[0]["id"] == "ipa-com.acme.bank"
