@@ -9,7 +9,7 @@ from ..base import Adapter
 class MitmproxyAdapter(Adapter):
     name = "mitmproxy"
     binary = "mitmdump"
-    mastg_id = None  # MASTG id not yet confirmed
+    mastg_id = "MASTG-TOOL-0097"  # mitmproxy
     platform = Platform.GENERIC
     category = Category.NETWORK
 

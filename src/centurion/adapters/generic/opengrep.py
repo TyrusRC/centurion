@@ -22,7 +22,7 @@ def default_rules_path() -> Path:
 class OpengrepAdapter(Adapter):
     name = "opengrep"
     binary = "opengrep"
-    mastg_id = None  # MASTG id not yet confirmed
+    mastg_id = "MASTG-TOOL-0110"  # semgrep (Opengrep is its open-source fork)
     platform = Platform.GENERIC
     category = Category.STATIC
 

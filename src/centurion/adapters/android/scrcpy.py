@@ -9,7 +9,7 @@ from ..base import Adapter
 class ScrcpyAdapter(Adapter):
     name = "scrcpy"
     binary = "scrcpy"
-    mastg_id = None  # QA / device tool, not part of the MASTG tool list
+    mastg_id = "MASTG-TOOL-0024"  # Scrcpy
     platform = Platform.ANDROID
     category = Category.DEVICE_QA
 

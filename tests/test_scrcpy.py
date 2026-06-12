@@ -9,7 +9,7 @@ def test_scrcpy_detect():
     assert status.installed is True
     assert status.version == "scrcpy 2.4"
     assert status.category == "device-qa"
-    assert status.mastg_id is None  # QA tool, not a MASTG tool
+    assert status.mastg_id == "MASTG-TOOL-0024"
 
 
 def test_scrcpy_start_command_no_serial():

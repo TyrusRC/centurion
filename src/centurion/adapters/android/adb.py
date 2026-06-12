@@ -24,7 +24,7 @@ class AndroidDevice:
 class AdbAdapter(Adapter):
     name = "adb"
     binary = "adb"
-    mastg_id = "MASTG-TOOL-0006"  # Android SDK / platform-tools
+    mastg_id = "MASTG-TOOL-0004"  # adb (0006 is the Android SDK, a different entry)
     platform = Platform.ANDROID
     category = Category.DEVICE_QA
 

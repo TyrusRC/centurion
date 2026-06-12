@@ -9,7 +9,7 @@ from ..base import Adapter
 class StringsAdapter(Adapter):
     name = "strings"
     binary = "strings"
-    mastg_id = None  # MASTG id not yet confirmed
+    mastg_id = None  # GNU binutils strings; not a distinct MASTG tool entry
     platform = Platform.GENERIC
     category = Category.RECON
 

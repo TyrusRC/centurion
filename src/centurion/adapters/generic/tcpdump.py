@@ -9,7 +9,7 @@ from ..base import Adapter
 class TcpdumpAdapter(Adapter):
     name = "tcpdump"
     binary = "tcpdump"
-    mastg_id = None  # MASTG id not yet confirmed
+    mastg_id = "MASTG-TOOL-0080"  # tcpdump
     platform = Platform.GENERIC
     category = Category.NETWORK
 

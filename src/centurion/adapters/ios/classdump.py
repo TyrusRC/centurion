@@ -11,7 +11,7 @@ from ..base import Adapter
 class ClassDumpAdapter(Adapter):
     name = "class-dump"
     binary = "class-dump"
-    mastg_id = None  # MASTG id not yet confirmed
+    mastg_id = "MASTG-TOOL-0043"  # class-dump
     platform = Platform.IOS
     category = Category.STATIC
 

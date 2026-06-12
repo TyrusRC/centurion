@@ -11,7 +11,7 @@ from ..base import Adapter
 class Dex2jarAdapter(Adapter):
     name = "dex2jar"
     binary = "d2j-dex2jar"
-    mastg_id = None  # MASTG id not yet confirmed
+    mastg_id = None  # not a distinct MASTG tool (apkx, 0012, bundles dex2jar)
     platform = Platform.ANDROID
     category = Category.STATIC
 

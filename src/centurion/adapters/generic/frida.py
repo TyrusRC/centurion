@@ -1,4 +1,4 @@
-"""Adapter for Frida (dynamic instrumentation — MASTG-TOOL-0001)."""
+"""Adapter for Frida (dynamic instrumentation — MASTG-TOOL-0031)."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ class FridaProcess:
 class FridaAdapter(Adapter):
     name = "frida"
     binary = "frida"
-    mastg_id = "MASTG-TOOL-0001"
+    mastg_id = "MASTG-TOOL-0031"  # Frida (generic); 0001/0039 are the Android/iOS entries
     platform = Platform.GENERIC
     category = Category.DYNAMIC
 

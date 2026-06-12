@@ -19,7 +19,7 @@ def test_doctor_lists_tools(monkeypatch):
     result = runner.invoke(cli_app.app, ["doctor"])
     assert result.exit_code == 0
     assert "adb" in result.stdout
-    assert "MASTG-TOOL-0006" in result.stdout
+    assert "MASTG-TOOL-0004" in result.stdout
 
 
 def test_device_list(monkeypatch):

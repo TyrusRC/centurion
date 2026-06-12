@@ -11,7 +11,7 @@ from ..base import Adapter
 class FridaIosDumpAdapter(Adapter):
     name = "frida-ios-dump"
     binary = "frida-ios-dump"
-    mastg_id = None  # MASTG id not yet confirmed
+    mastg_id = "MASTG-TOOL-0050"  # Frida-ios-dump
     platform = Platform.IOS
     category = Category.DYNAMIC
 

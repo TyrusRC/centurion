@@ -9,7 +9,7 @@ def test_mitmproxy_detect():
     assert status.installed is True
     assert status.platform == "generic"
     assert status.category == "network"
-    assert status.mastg_id is None
+    assert status.mastg_id == "MASTG-TOOL-0097"
 
 
 def test_mitmproxy_start_command_default():

@@ -13,7 +13,7 @@ def test_adb_detect_parses_version():
     status = AdbAdapter(runner).detect()
     assert status.installed is True
     assert status.version == "1.0.41"
-    assert status.mastg_id == "MASTG-TOOL-0006"
+    assert status.mastg_id == "MASTG-TOOL-0004"
     assert status.platform == "android"
 
 

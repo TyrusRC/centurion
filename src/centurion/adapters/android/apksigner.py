@@ -22,7 +22,7 @@ class SignatureInfo:
 class ApksignerAdapter(Adapter):
     name = "apksigner"
     binary = "apksigner"
-    mastg_id = None  # MASTG id not yet confirmed
+    mastg_id = "MASTG-TOOL-0123"  # apksigner
     platform = Platform.ANDROID
     category = Category.STATIC
 

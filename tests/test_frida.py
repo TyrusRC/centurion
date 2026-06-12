@@ -8,7 +8,7 @@ def test_frida_detect():
     runner.register("frida --version", stdout="16.2.1\n", path="/usr/bin/frida")
     status = FridaAdapter(runner).detect()
     assert status.installed is True
-    assert status.mastg_id == "MASTG-TOOL-0001"
+    assert status.mastg_id == "MASTG-TOOL-0031"
     assert status.category == "dynamic"
     assert status.platform == "generic"
 

@@ -9,7 +9,7 @@ from ..base import Adapter
 class IdeviceinstallerAdapter(Adapter):
     name = "ideviceinstaller"
     binary = "ideviceinstaller"
-    mastg_id = None  # MASTG id not yet confirmed
+    mastg_id = "MASTG-TOOL-0126"  # libimobiledevice suite
     platform = Platform.IOS
     category = Category.DEVICE_QA
 
