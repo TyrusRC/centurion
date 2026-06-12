@@ -202,3 +202,23 @@ def test_findings_list_tool(tmp_path, monkeypatch):
     ws = server.get_workspace("Acme")
     ws.add_finding(Finding(id="f1", title="Cleartext", severity="high", tool="opengrep"))
     assert server.findings_list("Acme")[0]["id"] == "f1"
+
+
+def test_scripts_resource_lists_bundled():
+    data = server.scripts_resource()
+    assert {s["name"] for s in data} >= {"ssl_unpin", "root_bypass"}
+
+
+def test_findings_resource(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    ws = server.get_workspace("Acme")
+    ws.add_finding(Finding(id="f9", title="X", severity="low", tool="opengrep"))
+    assert server.findings_resource("Acme")[0]["id"] == "f9"
+
+
+def test_processes_resource(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    server.get_workspace("Acme")  # create
+    assert server.processes_resource("Acme") == []

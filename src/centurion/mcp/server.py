@@ -161,6 +161,24 @@ def findings_list(target: str) -> list[dict]:
     return get_workspace(target).load().findings
 
 
+@mcp.resource("centurion://scripts")
+def scripts_resource() -> list[dict]:
+    """The bundled Frida script catalog."""
+    return [s.__dict__ for s in get_script_library().list()]
+
+
+@mcp.resource("centurion://findings/{target}")
+def findings_resource(target: str) -> list[dict]:
+    """Recorded findings for a target workspace."""
+    return get_workspace(target).load().findings
+
+
+@mcp.resource("centurion://processes/{target}")
+def processes_resource(target: str) -> list[dict]:
+    """Durable long-running process handles for a target workspace."""
+    return get_process_manager(target).list()
+
+
 def main() -> None:
     mcp.run()
 
