@@ -210,6 +210,16 @@ def ios_static_ipa(ipa: str, target: str) -> dict:
     return summary
 
 
+@mcp.tool()
+def ios_classdump(binary: str, target: str) -> dict:
+    """Dump Objective-C headers from a Mach-O binary with class-dump; records an artifact."""
+    ws = get_workspace(target)
+    out_dir = str(ws.artifacts_dir / "headers")
+    artifact = get_registry().get("class-dump").headers(binary, out_dir)
+    ws.add_artifact(artifact)
+    return artifact.to_dict()
+
+
 @mcp.resource("centurion://scripts")
 def scripts_resource() -> list[dict]:
     """The bundled Frida script catalog."""
