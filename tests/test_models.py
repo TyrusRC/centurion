@@ -38,3 +38,20 @@ def test_artifact_to_dict():
         "tool": "jadx",
         "label": "app.apk",
     }
+
+
+def test_apple_device_to_dict():
+    from centurion.models import AppleDevice
+    dev = AppleDevice(udid="00008030-ABC", name="Test iPhone", ios_version="16.4")
+    assert dev.to_dict() == {
+        "udid": "00008030-ABC",
+        "name": "Test iPhone",
+        "ios_version": "16.4",
+    }
+
+
+def test_apple_device_defaults():
+    from centurion.models import AppleDevice
+    dev = AppleDevice(udid="00008030-ABC")
+    assert dev.name is None
+    assert dev.ios_version is None
