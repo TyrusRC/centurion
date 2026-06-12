@@ -143,6 +143,24 @@ def proxy_flows(target: str) -> list[dict]:
     return adapter.parse_flows(result.stdout)
 
 
+@mcp.tool()
+def recon_strings(path: str, min_len: int = 8) -> list[str]:
+    """Extract printable strings (>= min_len) from a binary."""
+    return get_registry().get("strings").extract(path, min_len)
+
+
+@mcp.tool()
+def recon_radare2(path: str) -> dict:
+    """Return rabin2 binary info for a target file."""
+    return {"info": get_registry().get("radare2").info(path)}
+
+
+@mcp.tool()
+def findings_list(target: str) -> list[dict]:
+    """List recorded findings for the target workspace (for triage)."""
+    return get_workspace(target).load().findings
+
+
 def main() -> None:
     mcp.run()
 

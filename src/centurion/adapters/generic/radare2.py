@@ -24,3 +24,6 @@ class Radare2Adapter(Adapter):
 
     def info_command(self, path: str) -> list[str]:
         return ["rabin2", "-I", path]
+
+    def info(self, path: str) -> str:
+        return self.runner.run(self.info_command(path), timeout=120).stdout

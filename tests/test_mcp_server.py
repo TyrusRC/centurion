@@ -5,6 +5,9 @@ from centurion.adapters.android.objection import ObjectionAdapter
 from centurion.adapters.generic.frida import FridaAdapter
 from centurion.adapters.generic.mitmproxy import MitmproxyAdapter
 from centurion.adapters.generic.opengrep import OpengrepAdapter
+from centurion.adapters.generic.strings import StringsAdapter
+from centurion.adapters.generic.radare2 import Radare2Adapter
+from centurion.models import Finding
 from centurion.process import FakeRunner, WorkspaceProcessManager
 from centurion.registry import Registry
 
@@ -176,3 +179,26 @@ def test_proxy_flows_reads_flow_file(tmp_path, monkeypatch):
     monkeypatch.setattr(server, "get_registry", lambda: Registry([MitmproxyAdapter(fake)]))
     flows = server.proxy_flows("Acme")
     assert flows == [{"method": "GET", "url": "https://api.acme.com/x"}]
+
+
+def test_recon_strings_tool(monkeypatch):
+    fake = FakeRunner()
+    fake.register("strings -n 8", stdout="hardcoded_api_key\nshort\nanother_long_str\n")
+    monkeypatch.setattr(server, "get_registry", lambda: Registry([StringsAdapter(fake)]))
+    out = server.recon_strings("/tmp/libfoo.so")
+    assert "hardcoded_api_key" in out
+
+
+def test_recon_radare2_tool(monkeypatch):
+    fake = FakeRunner()
+    fake.register("rabin2 -I", stdout="arch arm\n")
+    monkeypatch.setattr(server, "get_registry", lambda: Registry([Radare2Adapter(fake)]))
+    assert "arch" in server.recon_radare2("/tmp/libfoo.so")["info"]
+
+
+def test_findings_list_tool(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    ws = server.get_workspace("Acme")
+    ws.add_finding(Finding(id="f1", title="Cleartext", severity="high", tool="opengrep"))
+    assert server.findings_list("Acme")[0]["id"] == "f1"
