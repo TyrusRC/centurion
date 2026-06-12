@@ -22,6 +22,8 @@ _CATALOG = {
     "root_bypass": ("Hide common root indicators from File.exists checks", "android"),
     "debugger_bypass": ("Force isDebuggerConnected to report false", "android"),
     "dump_class_hooks": ("Enumerate declared methods of a target class", "android"),
+    "ios_ssl_unpin": ("Bypass common iOS TLS pinning (SecTrustEvaluate)", "ios"),
+    "ios_jailbreak_bypass": ("Hide common iOS jailbreak indicators", "ios"),
 }
 
 

@@ -51,6 +51,10 @@ def default_registry(runner: Runner | None = None) -> Registry:
     from .adapters.generic.opengrep import OpengrepAdapter
     from .adapters.generic.strings import StringsAdapter
     from .adapters.generic.tcpdump import TcpdumpAdapter
+    from .adapters.ios.classdump import ClassDumpAdapter
+    from .adapters.ios.frida_ios_dump import FridaIosDumpAdapter
+    from .adapters.ios.idevice import IdeviceAdapter
+    from .adapters.ios.ideviceinstaller import IdeviceinstallerAdapter
 
     return Registry(
         [
@@ -68,5 +72,9 @@ def default_registry(runner: Runner | None = None) -> Registry:
             DrozerAdapter(runner),
             MitmproxyAdapter(runner),
             TcpdumpAdapter(runner),
+            IdeviceAdapter(runner),
+            IdeviceinstallerAdapter(runner),
+            FridaIosDumpAdapter(runner),
+            ClassDumpAdapter(runner),
         ]
     )

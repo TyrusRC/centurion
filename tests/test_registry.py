@@ -35,11 +35,18 @@ def test_registry_get_unknown_raises_clear_error():
         reg.get("ghost")
 
 
-def test_default_registry_has_all_phase2_adapters():
+def test_default_registry_has_all_adapters():
     names = {a.name for a in default_registry(FakeRunner()).all()}
     assert names == {
         "adb", "scrcpy", "jadx", "frida",
         "apktool", "dex2jar", "apksigner", "opengrep",
         "radare2", "strings", "objection", "drozer",
         "mitmproxy", "tcpdump",
+        "idevice", "ideviceinstaller", "frida-ios-dump", "class-dump",
     }
+
+
+def test_registry_filters_ios_adapters():
+    from centurion.models import Platform
+    names = {a.name for a in default_registry(FakeRunner()).by_platform(Platform.IOS)}
+    assert names == {"idevice", "ideviceinstaller", "frida-ios-dump", "class-dump"}
