@@ -25,6 +25,9 @@ centurion-mcp = "centurion.mcp.server:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/centurion"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"src/centurion/scripts/frida" = "centurion/scripts/frida"
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
