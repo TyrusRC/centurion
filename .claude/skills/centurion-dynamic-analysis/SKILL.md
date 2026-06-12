@@ -19,6 +19,13 @@ Attach, hook, observe. Use the Centurion MCP server. Operate only on apps you ar
 
 5. **Report.** Summarize what the hooks observed. Long-running handles appear in `centurion://processes/{target}`.
 
+## iOS variant
+
+For iOS targets, pass the app's bundle ID. The bundled Frida scripts include `ios_ssl_unpin`
+and `ios_jailbreak_bypass` (run via `frida_run_named_script(bundle_id, "ios_ssl_unpin", target)`);
+`frida_list_scripts` reports each script's platform. `objection_run` and `frida_run_script`
+work against iOS bundle IDs as well.
+
 ## Scope reminder
 
 Authorized assessments only. The bundled scripts are for authorized testing.

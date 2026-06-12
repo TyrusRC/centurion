@@ -7,6 +7,11 @@ from centurion.adapters.generic.mitmproxy import MitmproxyAdapter
 from centurion.adapters.generic.opengrep import OpengrepAdapter
 from centurion.adapters.generic.strings import StringsAdapter
 from centurion.adapters.generic.radare2 import Radare2Adapter
+from centurion.adapters.ios.idevice import IdeviceAdapter
+from centurion.adapters.ios.ideviceinstaller import IdeviceinstallerAdapter
+from centurion.adapters.ios.frida_ios_dump import FridaIosDumpAdapter
+import plistlib as _plistlib
+import zipfile as _zipfile
 from centurion.models import Finding
 from centurion.process import FakeRunner, WorkspaceProcessManager
 from centurion.registry import Registry
@@ -231,6 +236,7 @@ def test_all_documented_tools_are_defined():
         "frida_run_named_script", "frida_run_script", "ssl_unpin",
         "proxy_start", "proxy_stop", "proxy_flows", "recon_strings",
         "recon_radare2", "findings_list",
+        "ios_device_list", "ios_app_list", "ios_app_pull", "ios_static_ipa", "ios_plist",
     }
     for name in expected:
         assert callable(getattr(server, name)), f"missing MCP tool: {name}"
@@ -247,6 +253,7 @@ def test_skills_and_agents_reference_only_shipped_tools():
         "frida_run_named_script", "frida_run_script", "ssl_unpin",
         "proxy_start", "proxy_stop", "proxy_flows", "recon_strings",
         "recon_radare2", "findings_list",
+        "ios_device_list", "ios_app_list", "ios_app_pull", "ios_static_ipa", "ios_plist",
     }
     md_files = list((repo / ".claude" / "skills").rglob("*.md"))
     md_files += list((repo / ".claude" / "agents").rglob("*.md"))
@@ -258,3 +265,76 @@ def test_skills_and_agents_reference_only_shipped_tools():
         referenced |= set(pattern.findall(md.read_text()))
     unknown = referenced - shipped
     assert not unknown, f"skills/agents reference unshipped tools: {sorted(unknown)}"
+
+
+def test_ios_device_list_tool(monkeypatch):
+    fake = FakeRunner()
+    fake.register("idevice_id -l", stdout="00008030-AAAA\n", path="/usr/bin/idevice_id")
+    fake.register("ideviceinfo -u 00008030-AAAA -k DeviceName", stdout="Alice iPhone\n")
+    fake.register("ideviceinfo -u 00008030-AAAA -k ProductVersion", stdout="16.4\n")
+    monkeypatch.setattr(server, "get_registry", lambda: Registry([IdeviceAdapter(fake)]))
+    assert server.ios_device_list() == [
+        {"udid": "00008030-AAAA", "name": "Alice iPhone", "ios_version": "16.4"}
+    ]
+
+
+def test_ios_app_list_tool(monkeypatch):
+    out = (
+        "CFBundleIdentifier, CFBundleVersion, CFBundleDisplayName\n"
+        "com.acme.bank, 1.0, Acme Bank\n"
+    )
+    fake = FakeRunner()
+    fake.register("ideviceinstaller -l", stdout=out, path="/usr/bin/ideviceinstaller")
+    monkeypatch.setattr(server, "get_registry", lambda: Registry([IdeviceinstallerAdapter(fake)]))
+    assert server.ios_app_list() == ["com.acme.bank"]
+
+
+def test_ios_app_pull_records_artifact(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    fake = FakeRunner()
+    fake.register("frida-ios-dump", stdout="Done\n")
+    monkeypatch.setattr(server, "get_registry", lambda: Registry([FridaIosDumpAdapter(fake)]))
+    result = server.ios_app_pull("com.acme.bank", "AcmeIOS")
+    assert result["kind"] == "binary"
+    assert result["path"].endswith("com.acme.bank.ipa")
+    assert server.get_workspace("AcmeIOS").load().artifacts[0]["id"] == "ipa-com.acme.bank"
+
+
+def test_ios_plist_tool(tmp_path):
+    p = tmp_path / "Info.plist"
+    p.write_bytes(_plistlib.dumps({"CFBundleIdentifier": "com.acme.bank"}, fmt=_plistlib.FMT_BINARY))
+    assert server.ios_plist(str(p))["CFBundleIdentifier"] == "com.acme.bank"
+
+
+def _make_ipa(path, info):
+    with _zipfile.ZipFile(path, "w") as zf:
+        zf.writestr("Payload/Acme.app/Info.plist", _plistlib.dumps(info, fmt=_plistlib.FMT_XML))
+
+
+def test_ios_static_ipa_returns_summary(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    ipa = tmp_path / "app.ipa"
+    _make_ipa(ipa, {"CFBundleIdentifier": "com.acme.bank", "MinimumOSVersion": "15.0"})
+    summary = server.ios_static_ipa(str(ipa), "AcmeIOS")
+    assert summary["bundle_id"] == "com.acme.bank"
+    assert summary["minimum_os"] == "15.0"
+    # No ATS opt-out → no finding recorded.
+    assert server.get_workspace("AcmeIOS").load().findings == []
+
+
+def test_ios_static_ipa_records_ats_finding(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    ipa = tmp_path / "app.ipa"
+    _make_ipa(ipa, {
+        "CFBundleIdentifier": "com.acme.bank",
+        "NSAppTransportSecurity": {"NSAllowsArbitraryLoads": True},
+    })
+    summary = server.ios_static_ipa(str(ipa), "AcmeIOS")
+    assert summary["ats_allows_arbitrary_loads"] is True
+    findings = server.get_workspace("AcmeIOS").load().findings
+    assert len(findings) == 1
+    assert findings[0]["severity"] == "medium"
+    assert "Transport Security" in findings[0]["title"]
