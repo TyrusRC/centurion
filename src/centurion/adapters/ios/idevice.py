@@ -27,6 +27,14 @@ class IdeviceAdapter(Adapter):
         value = result.stdout.strip()
         return value or None
 
+    def relay_command(self, local_port: int, device_port: int) -> list[str]:
+        """iproxy TCP relay over USB (e.g. forward 2222->22 for SSH, or a frida port).
+
+        iproxy ships with the libimobiledevice suite (MASTG-TOOL-0055). Long-running, so
+        callers spawn it through the process manager.
+        """
+        return ["iproxy", str(local_port), str(device_port)]
+
     def info(self, udid: str) -> dict:
         return {
             "name": self._field(udid, "DeviceName"),

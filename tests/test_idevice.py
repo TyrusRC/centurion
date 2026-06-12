@@ -36,3 +36,7 @@ def test_info_returns_keyed_values():
     fake.register("ideviceinfo -u UDID -k ProductVersion", stdout="16.4\n")
     info = IdeviceAdapter(fake).info("UDID")
     assert info == {"name": "Alice iPhone", "ios_version": "16.4"}
+
+
+def test_relay_command_builds_iproxy_invocation():
+    assert IdeviceAdapter().relay_command(2222, 22) == ["iproxy", "2222", "22"]
