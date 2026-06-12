@@ -236,6 +236,7 @@ def test_all_documented_tools_are_defined():
         "frida_run_named_script", "frida_run_script", "ssl_unpin",
         "proxy_start", "proxy_stop", "proxy_flows", "recon_strings",
         "recon_radare2", "findings_list",
+        "ios_device_list", "ios_app_list", "ios_app_pull", "ios_static_ipa", "ios_plist",
     }
     for name in expected:
         assert callable(getattr(server, name)), f"missing MCP tool: {name}"
@@ -252,6 +253,7 @@ def test_skills_and_agents_reference_only_shipped_tools():
         "frida_run_named_script", "frida_run_script", "ssl_unpin",
         "proxy_start", "proxy_stop", "proxy_flows", "recon_strings",
         "recon_radare2", "findings_list",
+        "ios_device_list", "ios_app_list", "ios_app_pull", "ios_static_ipa", "ios_plist",
     }
     md_files = list((repo / ".claude" / "skills").rglob("*.md"))
     md_files += list((repo / ".claude" / "agents").rglob("*.md"))
