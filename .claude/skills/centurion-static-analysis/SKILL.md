@@ -19,6 +19,14 @@ Pull, decode, scan, record. Use the Centurion MCP server. Operate only on apps y
 
 5. **Report.** Summarize findings by severity and list them with their MASTG references. Findings are persisted; the `centurion-triage` subagent can pick them up via `findings_list`.
 
+## iOS variant
+
+For iOS apps, run `centurion-ios-recon` first, then `ios_app_pull(bundle_id, target)` to get
+a decrypted IPA (jailbreak + frida-server) and `ios_static_ipa(ipa, target)` to summarize the
+Info.plist — it records an ATS (NSAllowsArbitraryLoads) finding automatically. Use
+`ios_plist(path)` to inspect individual plists. Opengrep `static_scan` still applies to any
+extracted source.
+
 ## Scope reminder
 
 Authorized assessments only.

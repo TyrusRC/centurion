@@ -17,6 +17,13 @@ Proxy, trust, capture, summarize. Use the Centurion MCP server. Operate only on 
 
 4. **Stop.** Call `proxy_stop(target)` when done.
 
+## iOS variant
+
+The proxy flow is identical for iOS. To trust mitmproxy, install the CA profile via Settings
+and enable it under General > About > Certificate Trust Settings. App-level pinning still
+needs a bypass — run the `ios_ssl_unpin` Frida script via
+`frida_run_named_script(bundle_id, "ios_ssl_unpin", target)`.
+
 ## Scope reminder
 
 Authorized assessments only.
