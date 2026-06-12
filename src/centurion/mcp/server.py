@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 
+from .. import session as session
+from ..process import WorkspaceProcessManager
 from ..registry import Registry, default_registry
+from ..scripts import ScriptLibrary
 
 mcp = FastMCP("centurion")
 
@@ -12,6 +15,22 @@ mcp = FastMCP("centurion")
 def get_registry() -> Registry:
     """Factory so tests can monkeypatch with a FakeRunner-backed registry."""
     return default_registry()
+
+
+def get_workspace(target: str):
+    """Resolve (creating if needed) the per-target workspace."""
+    ws = session.Workspace(session.default_root(), target)
+    ws.create()
+    return ws
+
+
+def get_process_manager(target: str) -> WorkspaceProcessManager:
+    """Durable process manager backed by the target workspace."""
+    return WorkspaceProcessManager(get_workspace(target))
+
+
+def get_script_library() -> ScriptLibrary:
+    return ScriptLibrary()
 
 
 @mcp.tool()

@@ -27,3 +27,22 @@ def test_device_list_tool(monkeypatch):
     monkeypatch.setattr(server, "get_registry", _fake_registry)
     result = server.device_list()
     assert result == [{"serial": "emulator-5554", "state": "device", "model": "Pixel_6"}]
+
+
+def test_get_workspace_creates_under_target(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    ws = server.get_workspace("Acme Bank")
+    assert ws.slug == "acme-bank"
+    assert ws.session_file.exists()
+
+
+def test_get_process_manager_is_workspace_backed(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    pm = server.get_process_manager("Acme Bank")
+    assert pm.list() == []
+
+
+def test_get_script_library_lists_scripts():
+    assert len(server.get_script_library().list()) == 4
