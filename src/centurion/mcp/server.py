@@ -5,6 +5,8 @@ from __future__ import annotations
 from mcp.server.fastmcp import FastMCP
 
 from .. import session as session
+from ..ios.ipa import ipa_info, read_plist
+from ..models import Finding
 from ..process import WorkspaceProcessManager
 from ..registry import Registry, default_registry
 from ..scripts import ScriptLibrary
@@ -180,6 +182,32 @@ def ios_app_pull(bundle_id: str, target: str) -> dict:
     artifact = get_registry().get("frida-ios-dump").dump(bundle_id, str(ws.artifacts_dir))
     ws.add_artifact(artifact)
     return artifact.to_dict()
+
+
+@mcp.tool()
+def ios_plist(path: str) -> dict:
+    """Parse an iOS plist (binary or XML) into a dict."""
+    return read_plist(path)
+
+
+@mcp.tool()
+def ios_static_ipa(ipa: str, target: str) -> dict:
+    """Summarize an IPA's Info.plist; records an ATS finding if the app opts out of
+    App Transport Security. Returns the summary (bundle id, min OS, URL schemes, ATS)."""
+    ws = get_workspace(target)
+    summary = ipa_info(ipa)
+    if summary.get("ats_allows_arbitrary_loads"):
+        ws.add_finding(
+            Finding(
+                id=f"ats-{summary.get('bundle_id') or ipa}",
+                title="App Transport Security disabled (NSAllowsArbitraryLoads)",
+                severity="medium",
+                tool="ios-static-ipa",
+                detail="Info.plist sets NSAllowsArbitraryLoads=true, permitting cleartext HTTP.",
+                location=summary.get("info_plist"),
+            )
+        )
+    return summary
 
 
 @mcp.resource("centurion://scripts")

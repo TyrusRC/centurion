@@ -10,6 +10,8 @@ from centurion.adapters.generic.radare2 import Radare2Adapter
 from centurion.adapters.ios.idevice import IdeviceAdapter
 from centurion.adapters.ios.ideviceinstaller import IdeviceinstallerAdapter
 from centurion.adapters.ios.frida_ios_dump import FridaIosDumpAdapter
+import plistlib as _plistlib
+import zipfile as _zipfile
 from centurion.models import Finding
 from centurion.process import FakeRunner, WorkspaceProcessManager
 from centurion.registry import Registry
@@ -295,3 +297,42 @@ def test_ios_app_pull_records_artifact(tmp_path, monkeypatch):
     assert result["kind"] == "binary"
     assert result["path"].endswith("com.acme.bank.ipa")
     assert server.get_workspace("AcmeIOS").load().artifacts[0]["id"] == "ipa-com.acme.bank"
+
+
+def test_ios_plist_tool(tmp_path):
+    p = tmp_path / "Info.plist"
+    p.write_bytes(_plistlib.dumps({"CFBundleIdentifier": "com.acme.bank"}, fmt=_plistlib.FMT_BINARY))
+    assert server.ios_plist(str(p))["CFBundleIdentifier"] == "com.acme.bank"
+
+
+def _make_ipa(path, info):
+    with _zipfile.ZipFile(path, "w") as zf:
+        zf.writestr("Payload/Acme.app/Info.plist", _plistlib.dumps(info, fmt=_plistlib.FMT_XML))
+
+
+def test_ios_static_ipa_returns_summary(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    ipa = tmp_path / "app.ipa"
+    _make_ipa(ipa, {"CFBundleIdentifier": "com.acme.bank", "MinimumOSVersion": "15.0"})
+    summary = server.ios_static_ipa(str(ipa), "AcmeIOS")
+    assert summary["bundle_id"] == "com.acme.bank"
+    assert summary["minimum_os"] == "15.0"
+    # No ATS opt-out → no finding recorded.
+    assert server.get_workspace("AcmeIOS").load().findings == []
+
+
+def test_ios_static_ipa_records_ats_finding(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    ipa = tmp_path / "app.ipa"
+    _make_ipa(ipa, {
+        "CFBundleIdentifier": "com.acme.bank",
+        "NSAppTransportSecurity": {"NSAllowsArbitraryLoads": True},
+    })
+    summary = server.ios_static_ipa(str(ipa), "AcmeIOS")
+    assert summary["ats_allows_arbitrary_loads"] is True
+    findings = server.get_workspace("AcmeIOS").load().findings
+    assert len(findings) == 1
+    assert findings[0]["severity"] == "medium"
+    assert "Transport Security" in findings[0]["title"]
