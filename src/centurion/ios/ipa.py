@@ -37,12 +37,17 @@ def ipa_info(ipa_path: str) -> dict:
         "bundle_id": info.get("CFBundleIdentifier"),
         "minimum_os": info.get("MinimumOSVersion"),
         "url_schemes": _url_schemes(info),
-        "ats_allows_arbitrary_loads": (
-            info.get("NSAppTransportSecurity", {}).get("NSAllowsArbitraryLoads", False)
-        ),
+        "ats_allows_arbitrary_loads": _ats_arbitrary_loads(info),
         "app_path": app_path,
         "info_plist": plist_name,
     }
+
+
+def _ats_arbitrary_loads(info: dict) -> bool:
+    ats = info.get("NSAppTransportSecurity")
+    if not isinstance(ats, dict):
+        return False
+    return bool(ats.get("NSAllowsArbitraryLoads", False))
 
 
 def _url_schemes(info: dict) -> list[str]:

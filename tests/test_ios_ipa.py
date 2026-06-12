@@ -38,3 +38,12 @@ def test_ipa_info_raises_without_payload(tmp_path: Path):
         assert False, "expected ValueError"
     except ValueError as e:
         assert "Info.plist" in str(e)
+
+
+def test_ipa_info_tolerates_non_dict_ats(tmp_path: Path):
+    ipa = tmp_path / "app.ipa"
+    info = {"CFBundleIdentifier": "com.acme.bank", "NSAppTransportSecurity": "garbage"}
+    with zipfile.ZipFile(ipa, "w") as zf:
+        zf.writestr("Payload/Acme.app/Info.plist", plistlib.dumps(info, fmt=plistlib.FMT_XML))
+    result = ipa_info(str(ipa))
+    assert result["ats_allows_arbitrary_loads"] is False
