@@ -23,6 +23,11 @@ def test_get_resolves_a_real_readable_file():
     assert "AUTHORIZED TESTING ONLY" in Path(info.path).read_text()
 
 
+def test_path_returns_the_same_as_get_dot_path():
+    lib = ScriptLibrary()
+    assert lib.path("root_bypass") == lib.get("root_bypass").path
+
+
 def test_get_unknown_raises():
     lib = ScriptLibrary()
     try:

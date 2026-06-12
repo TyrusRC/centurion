@@ -9,7 +9,7 @@ Java.perform(function () {
         console.log('[centurion] hiding root path: ' + p);
         return false;
       }
-      return this.exists();
+      return File.exists.call(this);
     };
     console.log('[centurion] File.exists root checks hooked');
   } catch (e) { console.log('[centurion] root_bypass skipped: ' + e); }

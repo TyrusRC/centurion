@@ -1,5 +1,5 @@
 // Centurion — enumerate methods of a target class. AUTHORIZED TESTING ONLY.
-// Set CENTURION_CLASS in the spawned env, or edit the constant below.
+// Edit the target constant below to choose the class to enumerate.
 Java.perform(function () {
   var target = 'java.lang.String';
   try {
