@@ -229,17 +229,20 @@ def test_processes_resource(tmp_path, monkeypatch):
     assert server.processes_resource("Acme") == []
 
 
+SHIPPED_TOOLS = {
+    "doctor", "device_list", "app_list", "app_pull", "static_decode",
+    "static_scan", "objection_run", "frida_list_scripts",
+    "frida_run_named_script", "frida_run_script", "ssl_unpin",
+    "proxy_start", "proxy_stop", "proxy_flows", "recon_strings",
+    "recon_radare2", "findings_list",
+    "apkid_scan", "apkleaks_scan", "secrets_scan", "apk_badging", "recon_symbols",
+    "ios_device_list", "ios_app_list", "ios_app_pull", "ios_static_ipa", "ios_plist",
+    "ios_classdump", "ios_binary_info", "ios_entitlements", "ios_relay",
+}
+
+
 def test_all_documented_tools_are_defined():
-    expected = {
-        "doctor", "device_list", "app_list", "app_pull", "static_decode",
-        "static_scan", "objection_run", "frida_list_scripts",
-        "frida_run_named_script", "frida_run_script", "ssl_unpin",
-        "proxy_start", "proxy_stop", "proxy_flows", "recon_strings",
-        "recon_radare2", "findings_list",
-        "ios_device_list", "ios_app_list", "ios_app_pull", "ios_static_ipa", "ios_plist",
-        "ios_classdump",
-    }
-    for name in expected:
+    for name in SHIPPED_TOOLS:
         assert callable(getattr(server, name)), f"missing MCP tool: {name}"
 
 
@@ -248,15 +251,7 @@ def test_skills_and_agents_reference_only_shipped_tools():
     from pathlib import Path
 
     repo = Path(__file__).resolve().parent.parent
-    shipped = {
-        "doctor", "device_list", "app_list", "app_pull", "static_decode",
-        "static_scan", "objection_run", "frida_list_scripts",
-        "frida_run_named_script", "frida_run_script", "ssl_unpin",
-        "proxy_start", "proxy_stop", "proxy_flows", "recon_strings",
-        "recon_radare2", "findings_list",
-        "ios_device_list", "ios_app_list", "ios_app_pull", "ios_static_ipa", "ios_plist",
-        "ios_classdump",
-    }
+    shipped = SHIPPED_TOOLS
     md_files = list((repo / ".claude" / "skills").rglob("*.md"))
     md_files += list((repo / ".claude" / "agents").rglob("*.md"))
     assert md_files, "no skill/agent markdown found"
@@ -355,3 +350,116 @@ def test_ios_classdump_records_artifact(tmp_path, monkeypatch):
     assert result["kind"] == "decoded"
     assert result["tool"] == "class-dump"
     assert server.get_workspace("AcmeIOS").load().artifacts[0]["tool"] == "class-dump"
+
+
+from centurion.adapters.android.aapt2 import Aapt2Adapter
+from centurion.adapters.android.apkid import ApkidAdapter
+from centurion.adapters.android.apkleaks import ApkleaksAdapter
+from centurion.adapters.generic.gitleaks import GitleaksAdapter
+from centurion.adapters.generic.nm import NmAdapter
+from centurion.adapters.ios.ldid import LdidAdapter
+from centurion.adapters.ios.otool import OtoolAdapter
+
+
+def test_apkid_scan_records_findings(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    fake = FakeRunner()
+    fake.register("apkid -j", stdout='{"files":[{"filename":"classes.dex","matches":{"packer":["Jiagu"]}}]}')
+    monkeypatch.setattr(server, "get_registry", lambda: Registry([ApkidAdapter(fake)]))
+    findings = server.apkid_scan("/tmp/app.apk", "Acme")
+    assert findings[0]["title"] == "packer: Jiagu"
+    assert server.get_workspace("Acme").load().findings[0]["tool"] == "apkid"
+
+
+def test_apkleaks_scan_records_findings(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    fake = FakeRunner()
+    fake.register("apkleaks -f", stdout="")
+
+    def _registry():
+        # apkleaks writes its JSON to the workspace path the tool passes; emulate that.
+        ws = server.get_workspace("Acme")
+        (ws.artifacts_dir / "apkleaks.json").write_text(
+            '{"results":[{"name":"AWS API Key","matches":["AKIA..."]}]}'
+        )
+        return Registry([ApkleaksAdapter(fake)])
+
+    monkeypatch.setattr(server, "get_registry", _registry)
+    findings = server.apkleaks_scan("/tmp/app.apk", "Acme")
+    assert findings[0]["title"] == "AWS API Key"
+    assert findings[0]["severity"] == "medium"
+
+
+def test_secrets_scan_records_findings(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    fake = FakeRunner()
+    fake.register("gitleaks dir", returncode=1, stdout="")
+
+    def _registry():
+        ws = server.get_workspace("Acme")
+        (ws.artifacts_dir / "gitleaks.json").write_text(
+            '[{"RuleID":"aws","Description":"AWS Key","File":"a.txt","StartLine":1,"Match":"AKIA"}]'
+        )
+        return Registry([GitleaksAdapter(fake)])
+
+    monkeypatch.setattr(server, "get_registry", _registry)
+    findings = server.secrets_scan("/tmp/src", "Acme")
+    assert findings[0]["severity"] == "high"
+    assert server.get_workspace("Acme").load().findings[0]["tool"] == "gitleaks"
+
+
+def test_apk_badging_tool(monkeypatch):
+    fake = FakeRunner()
+    fake.register("aapt2 dump badging", stdout="package: name='com.acme' versionCode='1' versionName='1.0'\n")
+    monkeypatch.setattr(server, "get_registry", lambda: Registry([Aapt2Adapter(fake)]))
+    assert server.apk_badging("/tmp/app.apk")["package"] == "com.acme"
+
+
+def test_recon_symbols_tool(monkeypatch):
+    fake = FakeRunner()
+    fake.register("nm -D", stdout="0000000000001100 T JNI_OnLoad\n")
+    monkeypatch.setattr(server, "get_registry", lambda: Registry([NmAdapter(fake)]))
+    assert server.recon_symbols("/tmp/lib.so")[0]["name"] == "JNI_OnLoad"
+
+
+def test_ios_binary_info_records_findings(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    fake = FakeRunner()
+    fake.register("otool -hv", stdout="flags NOUNDEFS\n")  # no PIE
+    fake.register("otool -l", stdout="cryptid 0\n")  # not encrypted
+    fake.register("otool -Iv", stdout="")  # no canary
+    fake.register("otool -L", stdout="/tmp/Acme:\n\t@rpath/libswiftCore.dylib (x)\n")
+    monkeypatch.setattr(server, "get_registry", lambda: Registry([OtoolAdapter(fake)]))
+    info = server.ios_binary_info("/tmp/Acme", "AcmeIOS")
+    assert info["pie"] is False
+    titles = {f["title"] for f in server.get_workspace("AcmeIOS").load().findings}
+    assert "Binary not built with PIE/ASLR" in titles
+
+
+def test_ios_entitlements_tool(monkeypatch):
+    import plistlib
+    ents = plistlib.dumps({"get-task-allow": False}, fmt=plistlib.FMT_XML).decode()
+    fake = FakeRunner()
+    fake.register("ldid -e", stdout=ents)
+    monkeypatch.setattr(server, "get_registry", lambda: Registry([LdidAdapter(fake)]))
+    assert server.ios_entitlements("/tmp/Acme")["get-task-allow"] is False
+
+
+def test_ios_relay_starts_process(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+
+    class FakeProc:
+        pid = 777
+
+    monkeypatch.setattr(server, "get_registry", lambda: Registry([IdeviceAdapter(FakeRunner())]))
+    monkeypatch.setattr(server, "get_process_manager",
+                        lambda target: WorkspaceProcessManager(
+                            server.get_workspace(target), spawn=lambda cmd: FakeProc()))
+    result = server.ios_relay(2222, 22, "AcmeIOS")
+    assert result["handle"] == "iproxy-2222"
+    assert result["command"] == ["iproxy", "2222", "22"]

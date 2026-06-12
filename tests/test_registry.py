@@ -42,11 +42,15 @@ def test_default_registry_has_all_adapters():
         "apktool", "dex2jar", "apksigner", "opengrep",
         "radare2", "strings", "objection", "drozer",
         "mitmproxy", "tcpdump",
+        "apkid", "apkleaks", "aapt2", "gitleaks", "nm",
         "idevice", "ideviceinstaller", "frida-ios-dump", "class-dump",
+        "otool", "ldid",
     }
 
 
 def test_registry_filters_ios_adapters():
     from centurion.models import Platform
     names = {a.name for a in default_registry(FakeRunner()).by_platform(Platform.IOS)}
-    assert names == {"idevice", "ideviceinstaller", "frida-ios-dump", "class-dump"}
+    assert names == {
+        "idevice", "ideviceinstaller", "frida-ios-dump", "class-dump", "otool", "ldid",
+    }

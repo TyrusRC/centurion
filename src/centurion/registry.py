@@ -37,7 +37,10 @@ class Registry:
 
 def default_registry(runner: Runner | None = None) -> Registry:
     """Build the registry with all currently-implemented adapters."""
+    from .adapters.android.aapt2 import Aapt2Adapter
     from .adapters.android.adb import AdbAdapter
+    from .adapters.android.apkid import ApkidAdapter
+    from .adapters.android.apkleaks import ApkleaksAdapter
     from .adapters.android.apksigner import ApksignerAdapter
     from .adapters.android.apktool import ApktoolAdapter
     from .adapters.android.dex2jar import Dex2jarAdapter
@@ -46,7 +49,9 @@ def default_registry(runner: Runner | None = None) -> Registry:
     from .adapters.android.objection import ObjectionAdapter
     from .adapters.android.scrcpy import ScrcpyAdapter
     from .adapters.generic.frida import FridaAdapter
+    from .adapters.generic.gitleaks import GitleaksAdapter
     from .adapters.generic.mitmproxy import MitmproxyAdapter
+    from .adapters.generic.nm import NmAdapter
     from .adapters.generic.radare2 import Radare2Adapter
     from .adapters.generic.opengrep import OpengrepAdapter
     from .adapters.generic.strings import StringsAdapter
@@ -55,6 +60,8 @@ def default_registry(runner: Runner | None = None) -> Registry:
     from .adapters.ios.frida_ios_dump import FridaIosDumpAdapter
     from .adapters.ios.idevice import IdeviceAdapter
     from .adapters.ios.ideviceinstaller import IdeviceinstallerAdapter
+    from .adapters.ios.ldid import LdidAdapter
+    from .adapters.ios.otool import OtoolAdapter
 
     return Registry(
         [
@@ -72,9 +79,16 @@ def default_registry(runner: Runner | None = None) -> Registry:
             DrozerAdapter(runner),
             MitmproxyAdapter(runner),
             TcpdumpAdapter(runner),
+            ApkidAdapter(runner),
+            ApkleaksAdapter(runner),
+            Aapt2Adapter(runner),
+            GitleaksAdapter(runner),
+            NmAdapter(runner),
             IdeviceAdapter(runner),
             IdeviceinstallerAdapter(runner),
             FridaIosDumpAdapter(runner),
             ClassDumpAdapter(runner),
+            OtoolAdapter(runner),
+            LdidAdapter(runner),
         ]
     )

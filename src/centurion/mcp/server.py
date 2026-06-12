@@ -220,6 +220,76 @@ def ios_classdump(binary: str, target: str) -> dict:
     return artifact.to_dict()
 
 
+@mcp.tool()
+def apkid_scan(apk: str, target: str) -> list[dict]:
+    """Detect the APK's packer/obfuscator/compiler with APKiD; records info findings."""
+    ws = get_workspace(target)
+    findings = get_registry().get("apkid").scan(apk)
+    for finding in findings:
+        ws.add_finding(finding)
+    return [f.to_dict() for f in findings]
+
+
+@mcp.tool()
+def apkleaks_scan(apk: str, target: str) -> list[dict]:
+    """Scan an APK for endpoints and secrets with apkleaks; records findings."""
+    ws = get_workspace(target)
+    out_json = str(ws.artifacts_dir / "apkleaks.json")
+    findings = get_registry().get("apkleaks").scan(apk, out_json)
+    for finding in findings:
+        ws.add_finding(finding)
+    return [f.to_dict() for f in findings]
+
+
+@mcp.tool()
+def secrets_scan(path: str, target: str) -> list[dict]:
+    """Scan a decoded/source tree for secrets with gitleaks; records findings."""
+    ws = get_workspace(target)
+    report = str(ws.artifacts_dir / "gitleaks.json")
+    findings = get_registry().get("gitleaks").scan(path, report)
+    for finding in findings:
+        ws.add_finding(finding)
+    return [f.to_dict() for f in findings]
+
+
+@mcp.tool()
+def apk_badging(apk: str) -> dict:
+    """Dump an APK's package name, version and requested permissions with aapt2."""
+    return get_registry().get("aapt2").badging(apk)
+
+
+@mcp.tool()
+def recon_symbols(path: str, dynamic: bool = True) -> list[dict]:
+    """List symbols from a binary/shared library with nm (dynamic table by default)."""
+    return get_registry().get("nm").symbols(path, dynamic)
+
+
+@mcp.tool()
+def ios_binary_info(binary: str, target: str) -> dict:
+    """Report Mach-O hardening (PIE/encryption/stack-canary/ARC/libs) with otool;
+    records findings for missing PIE, an unencrypted binary, or a missing stack canary."""
+    ws = get_workspace(target)
+    adapter = get_registry().get("otool")
+    info = adapter.hardening(binary)
+    for finding in adapter.hardening_findings(binary, info):
+        ws.add_finding(finding)
+    return info
+
+
+@mcp.tool()
+def ios_entitlements(binary: str) -> dict:
+    """Dump code-signing entitlements from a Mach-O binary with ldid."""
+    return get_registry().get("ldid").entitlements(binary)
+
+
+@mcp.tool()
+def ios_relay(local_port: int, device_port: int, target: str) -> dict:
+    """Start an iproxy USB TCP relay (durable handle 'iproxy-<local>'); e.g. 2222->22 for SSH."""
+    command = get_registry().get("idevice").relay_command(local_port, device_port)
+    proc = get_process_manager(target).start(f"iproxy-{local_port}", command)
+    return proc.to_dict()
+
+
 @mcp.resource("centurion://scripts")
 def scripts_resource() -> list[dict]:
     """The bundled Frida script catalog."""
