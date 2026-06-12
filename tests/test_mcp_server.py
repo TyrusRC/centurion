@@ -53,7 +53,7 @@ def test_get_process_manager_is_workspace_backed(tmp_path, monkeypatch):
 
 
 def test_get_script_library_lists_scripts():
-    assert len(server.get_script_library().list()) == 4
+    assert len(server.get_script_library().list()) == 6
 
 
 def _static_registry(fake):
