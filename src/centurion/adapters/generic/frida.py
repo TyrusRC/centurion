@@ -31,6 +31,13 @@ class FridaAdapter(Adapter):
     def ps_command(self, usb: bool = True) -> list[str]:
         return ["frida-ps", "-U"] if usb else ["frida-ps"]
 
+    def run_script_command(self, target_app: str, script: str, usb: bool = True) -> list[str]:
+        cmd = ["frida"]
+        if usb:
+            cmd.append("-U")
+        cmd += ["-f", target_app, "-l", script]
+        return cmd
+
     def parse_ps(self, stdout: str) -> list[FridaProcess]:
         procs: list[FridaProcess] = []
         for line in stdout.splitlines():

@@ -81,6 +81,41 @@ def static_scan(path: str, target: str, rules: str | None = None) -> list[dict]:
     return [f.to_dict() for f in findings]
 
 
+@mcp.tool()
+def objection_run(package: str, commands: list[str]) -> str:
+    """Run objection startup commands against a package; returns raw output."""
+    return get_registry().get("objection").run(package, commands)
+
+
+@mcp.tool()
+def frida_list_scripts() -> list[dict]:
+    """List the bundled, vetted Frida scripts (name, description, platform)."""
+    return [s.__dict__ for s in get_script_library().list()]
+
+
+@mcp.tool()
+def frida_run_named_script(target_app: str, script: str, target: str) -> dict:
+    """Spawn target_app under Frida with a bundled script; durable process handle."""
+    script_path = get_script_library().path(script)
+    command = get_registry().get("frida").run_script_command(target_app, script_path)
+    proc = get_process_manager(target).start(f"frida-{target_app}", command)
+    return proc.to_dict()
+
+
+@mcp.tool()
+def frida_run_script(target_app: str, script_path: str, target: str) -> dict:
+    """Spawn target_app under Frida with an arbitrary script (raw passthrough)."""
+    command = get_registry().get("frida").run_script_command(target_app, script_path)
+    proc = get_process_manager(target).start(f"frida-{target_app}", command)
+    return proc.to_dict()
+
+
+@mcp.tool()
+def ssl_unpin(target_app: str, target: str) -> dict:
+    """Shortcut: run the bundled ssl_unpin script against target_app."""
+    return frida_run_named_script(target_app, "ssl_unpin", target)
+
+
 def main() -> None:
     mcp.run()
 

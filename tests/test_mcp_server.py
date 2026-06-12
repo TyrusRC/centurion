@@ -1,8 +1,10 @@
 import centurion.mcp.server as server
 from centurion.adapters.android.adb import AdbAdapter
 from centurion.adapters.android.apktool import ApktoolAdapter
+from centurion.adapters.android.objection import ObjectionAdapter
+from centurion.adapters.generic.frida import FridaAdapter
 from centurion.adapters.generic.opengrep import OpengrepAdapter
-from centurion.process import FakeRunner
+from centurion.process import FakeRunner, WorkspaceProcessManager
 from centurion.registry import Registry
 
 
@@ -100,3 +102,48 @@ def test_static_scan_records_findings(tmp_path, monkeypatch):
     findings = server.static_scan("/tmp/decoded", "Acme", str(rules))
     assert findings[0]["severity"] == "high"
     assert server.get_workspace("Acme").load().findings[0]["title"] == "cleartext"
+
+
+def test_objection_run_tool(monkeypatch):
+    fake = FakeRunner()
+    fake.register("objection -g com.acme.app explore",
+                  stdout="android hooking ... done\n")
+    monkeypatch.setattr(server, "get_registry",
+                        lambda: Registry([ObjectionAdapter(fake)]))
+    out = server.objection_run("com.acme.app", ["android hooking list classes"])
+    assert "done" in out
+
+
+def test_frida_list_scripts_tool():
+    names = {s["name"] for s in server.frida_list_scripts()}
+    assert "ssl_unpin" in names
+
+
+def test_frida_run_named_script_starts_process(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+
+    class FakeProc:
+        pid = 4321
+
+    monkeypatch.setattr(server, "get_process_manager",
+                        lambda target: WorkspaceProcessManager(
+                            server.get_workspace(target), spawn=lambda cmd: FakeProc()))
+    result = server.frida_run_named_script("com.acme.app", "ssl_unpin", "Acme")
+    assert result["handle"] == "frida-com.acme.app"
+    assert result["pid"] == 4321
+    assert any("ssl_unpin.js" in part for part in result["command"])
+
+
+def test_ssl_unpin_is_named_script_shortcut(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+
+    class FakeProc:
+        pid = 99
+
+    monkeypatch.setattr(server, "get_process_manager",
+                        lambda target: WorkspaceProcessManager(
+                            server.get_workspace(target), spawn=lambda cmd: FakeProc()))
+    result = server.ssl_unpin("com.acme.app", "Acme")
+    assert any("ssl_unpin.js" in part for part in result["command"])
