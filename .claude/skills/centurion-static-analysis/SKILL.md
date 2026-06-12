@@ -24,7 +24,8 @@ Pull, decode, scan, record. Use the Centurion MCP server. Operate only on apps y
 For iOS apps, run `centurion-ios-recon` first, then `ios_app_pull(bundle_id, target)` to get
 a decrypted IPA (jailbreak + frida-server) and `ios_static_ipa(ipa, target)` to summarize the
 Info.plist — it records an ATS (NSAllowsArbitraryLoads) finding automatically. Use
-`ios_plist(path)` to inspect individual plists. Opengrep `static_scan` still applies to any
+`ios_plist(path)` to inspect individual plists, and `ios_classdump(binary, target)` to dump
+Objective-C headers from the app's Mach-O binary. Opengrep `static_scan` still applies to any
 extracted source.
 
 ## Scope reminder

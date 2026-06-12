@@ -237,6 +237,7 @@ def test_all_documented_tools_are_defined():
         "proxy_start", "proxy_stop", "proxy_flows", "recon_strings",
         "recon_radare2", "findings_list",
         "ios_device_list", "ios_app_list", "ios_app_pull", "ios_static_ipa", "ios_plist",
+        "ios_classdump",
     }
     for name in expected:
         assert callable(getattr(server, name)), f"missing MCP tool: {name}"
@@ -254,6 +255,7 @@ def test_skills_and_agents_reference_only_shipped_tools():
         "proxy_start", "proxy_stop", "proxy_flows", "recon_strings",
         "recon_radare2", "findings_list",
         "ios_device_list", "ios_app_list", "ios_app_pull", "ios_static_ipa", "ios_plist",
+        "ios_classdump",
     }
     md_files = list((repo / ".claude" / "skills").rglob("*.md"))
     md_files += list((repo / ".claude" / "agents").rglob("*.md"))
@@ -338,3 +340,18 @@ def test_ios_static_ipa_records_ats_finding(tmp_path, monkeypatch):
     assert len(findings) == 1
     assert findings[0]["severity"] == "medium"
     assert "Transport Security" in findings[0]["title"]
+
+
+from centurion.adapters.ios.classdump import ClassDumpAdapter
+
+
+def test_ios_classdump_records_artifact(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    fake = FakeRunner()
+    fake.register("class-dump", stdout="")
+    monkeypatch.setattr(server, "get_registry", lambda: Registry([ClassDumpAdapter(fake)]))
+    result = server.ios_classdump("/tmp/Acme.app/Acme", "AcmeIOS")
+    assert result["kind"] == "decoded"
+    assert result["tool"] == "class-dump"
+    assert server.get_workspace("AcmeIOS").load().artifacts[0]["tool"] == "class-dump"

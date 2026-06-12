@@ -55,11 +55,12 @@ Register the stdio server:
 claude mcp add centurion -- centurion-mcp
 ```
 
-This exposes 22 tools and 3 resources, including:
+This exposes 23 tools and 3 resources, including:
 
 - **Recon:** `doctor`, `device_list`, `ios_device_list`, `recon_strings`, `recon_radare2`
 - **Apps:** `app_list` / `app_pull` (Android), `ios_app_list` / `ios_app_pull` (decrypted IPA)
-- **Static:** `static_decode`, `static_scan` (Opengrep → findings), `ios_static_ipa`, `ios_plist`
+- **Static:** `static_decode`, `static_scan` (Opengrep → findings), `ios_static_ipa`,
+  `ios_plist`, `ios_classdump`
 - **Dynamic:** `objection_run`, `frida_list_scripts`, `frida_run_named_script`,
   `frida_run_script`, `ssl_unpin`
 - **Network:** `proxy_start` / `proxy_stop` / `proxy_flows` (mitmproxy)
