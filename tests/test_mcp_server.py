@@ -222,3 +222,15 @@ def test_processes_resource(tmp_path, monkeypatch):
     monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
     server.get_workspace("Acme")  # create
     assert server.processes_resource("Acme") == []
+
+
+def test_all_documented_tools_are_defined():
+    expected = {
+        "doctor", "device_list", "app_list", "app_pull", "static_decode",
+        "static_scan", "objection_run", "frida_list_scripts",
+        "frida_run_named_script", "frida_run_script", "ssl_unpin",
+        "proxy_start", "proxy_stop", "proxy_flows", "recon_strings",
+        "recon_radare2", "findings_list",
+    }
+    for name in expected:
+        assert callable(getattr(server, name)), f"missing MCP tool: {name}"
