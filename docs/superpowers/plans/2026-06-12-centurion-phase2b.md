@@ -1177,4 +1177,5 @@ git commit -m "test: guard that all documented MCP tools are defined"
 
 - Resources that need engagement context are **templated** (`centurion://findings/{target}`, `centurion://processes/{target}`) rather than bare URIs, because a finding/process list is meaningless without a workspace; `centurion://scripts` stays static. This honors the spec's intent (the three resource families) while remaining functional.
 - `frida_run_named_script`/`frida_run_script` use `-f` (spawn) for deterministic startup; switch to attach-by-name if a workflow needs to attach to an already-running process.
+- Task 1's `[tool.hatch.build.targets.wheel.force-include]` stanza was intentionally NOT added: a verified wheel build showed hatchling already ships the in-package `.js` data files via the `packages = ["src/centurion"]` rule, so force-include would create a duplicate-path build error. The scripts are confirmed present in the built wheel.
 ```

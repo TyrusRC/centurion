@@ -234,3 +234,27 @@ def test_all_documented_tools_are_defined():
     }
     for name in expected:
         assert callable(getattr(server, name)), f"missing MCP tool: {name}"
+
+
+def test_skills_and_agents_reference_only_shipped_tools():
+    import re
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parent.parent
+    shipped = {
+        "doctor", "device_list", "app_list", "app_pull", "static_decode",
+        "static_scan", "objection_run", "frida_list_scripts",
+        "frida_run_named_script", "frida_run_script", "ssl_unpin",
+        "proxy_start", "proxy_stop", "proxy_flows", "recon_strings",
+        "recon_radare2", "findings_list",
+    }
+    md_files = list((repo / ".claude" / "skills").rglob("*.md"))
+    md_files += list((repo / ".claude" / "agents").rglob("*.md"))
+    assert md_files, "no skill/agent markdown found"
+    # Tool references are written as `tool_name(` (a backtick-quoted call).
+    pattern = re.compile(r"`([a-z_][a-z0-9_]*)\(")
+    referenced = set()
+    for md in md_files:
+        referenced |= set(pattern.findall(md.read_text()))
+    unknown = referenced - shipped
+    assert not unknown, f"skills/agents reference unshipped tools: {sorted(unknown)}"
