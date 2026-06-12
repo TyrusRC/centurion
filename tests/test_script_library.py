@@ -6,7 +6,10 @@ from centurion.scripts import ScriptLibrary
 def test_lists_all_bundled_scripts():
     lib = ScriptLibrary()
     names = {s.name for s in lib.list()}
-    assert names == {"ssl_unpin", "root_bypass", "debugger_bypass", "dump_class_hooks"}
+    assert names == {
+        "ssl_unpin", "root_bypass", "debugger_bypass", "dump_class_hooks",
+        "ios_ssl_unpin", "ios_jailbreak_bypass",
+    }
 
 
 def test_each_script_has_description_and_platform():
@@ -35,3 +38,16 @@ def test_get_unknown_raises():
         assert False, "expected KeyError"
     except KeyError as e:
         assert "does_not_exist" in str(e)
+
+
+def test_ios_scripts_listed_with_ios_platform():
+    lib = ScriptLibrary()
+    info = {s.name: s for s in lib.list()}
+    assert info["ios_ssl_unpin"].platform == "ios"
+    assert info["ios_jailbreak_bypass"].platform == "ios"
+
+
+def test_ios_ssl_unpin_resolves_to_real_file():
+    info = ScriptLibrary().get("ios_ssl_unpin")
+    assert Path(info.path).is_file()
+    assert "AUTHORIZED TESTING ONLY" in Path(info.path).read_text()
