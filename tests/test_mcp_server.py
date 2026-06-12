@@ -3,6 +3,7 @@ from centurion.adapters.android.adb import AdbAdapter
 from centurion.adapters.android.apktool import ApktoolAdapter
 from centurion.adapters.android.objection import ObjectionAdapter
 from centurion.adapters.generic.frida import FridaAdapter
+from centurion.adapters.generic.mitmproxy import MitmproxyAdapter
 from centurion.adapters.generic.opengrep import OpengrepAdapter
 from centurion.process import FakeRunner, WorkspaceProcessManager
 from centurion.registry import Registry
@@ -147,3 +148,31 @@ def test_ssl_unpin_is_named_script_shortcut(tmp_path, monkeypatch):
                             server.get_workspace(target), spawn=lambda cmd: FakeProc()))
     result = server.ssl_unpin("com.acme.app", "Acme")
     assert any("ssl_unpin.js" in part for part in result["command"])
+
+
+def test_proxy_start_and_stop(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+
+    class FakeProc:
+        pid = 555
+
+    monkeypatch.setattr(server, "get_registry", lambda: Registry([MitmproxyAdapter(FakeRunner())]))
+    monkeypatch.setattr(server, "get_process_manager",
+                        lambda target: WorkspaceProcessManager(
+                            server.get_workspace(target), spawn=lambda cmd: FakeProc(),
+                            kill=lambda pid: None))
+    started = server.proxy_start("Acme", 8080)
+    assert started["handle"] == "proxy"
+    assert started["pid"] == 555
+    assert server.proxy_stop("Acme") == {"stopped": True}
+
+
+def test_proxy_flows_reads_flow_file(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    fake = FakeRunner()
+    fake.register("mitmdump -nr", stdout="GET https://api.acme.com/x\n")
+    monkeypatch.setattr(server, "get_registry", lambda: Registry([MitmproxyAdapter(fake)]))
+    flows = server.proxy_flows("Acme")
+    assert flows == [{"method": "GET", "url": "https://api.acme.com/x"}]

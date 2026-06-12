@@ -27,3 +27,13 @@ class MitmproxyAdapter(Adapter):
 
     def read_command(self, flow_file: str) -> list[str]:
         return ["mitmdump", "-nr", flow_file, "--flow-detail", "1"]
+
+    _METHODS = ("GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS")
+
+    def parse_flows(self, stdout: str) -> list[dict]:
+        flows: list[dict] = []
+        for line in stdout.splitlines():
+            parts = line.strip().split(None, 1)
+            if len(parts) == 2 and parts[0] in self._METHODS:
+                flows.append({"method": parts[0], "url": parts[1].strip()})
+        return flows

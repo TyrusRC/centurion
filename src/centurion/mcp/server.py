@@ -116,6 +116,33 @@ def ssl_unpin(target_app: str, target: str) -> dict:
     return frida_run_named_script(target_app, "ssl_unpin", target)
 
 
+def _flow_file(target: str) -> str:
+    return str(get_workspace(target).artifacts_dir / "flows.mitm")
+
+
+@mcp.tool()
+def proxy_start(target: str, port: int = 8080) -> dict:
+    """Start mitmdump (durable handle 'proxy'), writing flows into the workspace."""
+    adapter = get_registry().get("mitmproxy")
+    command = adapter.start_command(port=port, flow_out=_flow_file(target))
+    proc = get_process_manager(target).start("proxy", command)
+    return proc.to_dict()
+
+
+@mcp.tool()
+def proxy_stop(target: str) -> dict:
+    """Stop the running mitmdump proxy for the target."""
+    return {"stopped": get_process_manager(target).stop("proxy")}
+
+
+@mcp.tool()
+def proxy_flows(target: str) -> list[dict]:
+    """Summarize captured flows (method + URL) from the workspace flow file."""
+    adapter = get_registry().get("mitmproxy")
+    result = adapter.runner.run(adapter.read_command(_flow_file(target)), timeout=120)
+    return adapter.parse_flows(result.stdout)
+
+
 def main() -> None:
     mcp.run()
 
