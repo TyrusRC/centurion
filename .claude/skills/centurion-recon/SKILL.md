@@ -18,9 +18,10 @@ Establish the lay of the land before deeper analysis. Use the Centurion MCP serv
    present, ask which serial to target.
 
 3. **Summarize the baseline.** Report the selected device, the installed tool set mapped
-   to MASTG categories (device-qa / static / dynamic / network), and propose next steps
-   (e.g. static analysis via the `centurion-static-analysis` skill, or screen mirroring
-   with scrcpy).
+   to MASTG categories (device-qa / static / dynamic / network / recon), and propose next
+   steps (e.g. static analysis via the `centurion-static-analysis` skill, or screen
+   mirroring with scrcpy). For quick binary recon, `recon_strings`, `recon_symbols` (nm)
+   and `recon_radare2` work on any extracted `.so`/Mach-O without a full decode.
 
 ## Scope reminder
 

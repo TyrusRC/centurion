@@ -17,7 +17,9 @@ Pull, decode, scan, record. Use the Centurion MCP server. Operate only on apps y
 
 4. **Scan.** Call `static_scan(path, target)` on the decoded tree. If it reports that rules are missing, tell the user to install an Opengrep ruleset into `~/.centurion/rules` (see `doctor` install hint) or pass an explicit `rules` path — never auto-fetch rules.
 
-5. **Report.** Summarize findings by severity and list them with their MASTG references. Findings are persisted; the `centurion-triage` subagent can pick them up via `findings_list`.
+5. **Fingerprint and harvest.** Call `apkid_scan(apk, target)` to identify the packer/obfuscator/compiler (it explains odd decompiler output). Call `apk_badging(apk)` for the package id, version and requested permissions. Then harvest secrets/endpoints: `apkleaks_scan(apk, target)` on the APK, and/or `secrets_scan(path, target)` (gitleaks) over the decoded tree. All record findings into the workspace.
+
+6. **Report.** Summarize findings by severity and list them with their MASTG references. Findings are persisted; the `centurion-triage` subagent can pick them up via `findings_list`.
 
 ## iOS variant
 
@@ -25,8 +27,10 @@ For iOS apps, run `centurion-ios-recon` first, then `ios_app_pull(bundle_id, tar
 a decrypted IPA (jailbreak + frida-server) and `ios_static_ipa(ipa, target)` to summarize the
 Info.plist — it records an ATS (NSAllowsArbitraryLoads) finding automatically. Use
 `ios_plist(path)` to inspect individual plists, and `ios_classdump(binary, target)` to dump
-Objective-C headers from the app's Mach-O binary. Opengrep `static_scan` still applies to any
-extracted source.
+Objective-C headers from the app's Mach-O binary. Check binary hardening with
+`ios_binary_info(binary, target)` (PIE/encryption/stack-canary/ARC — records findings) and
+`ios_entitlements(binary)` (ldid). `secrets_scan`, `recon_symbols`, and Opengrep `static_scan`
+still apply to any extracted source or binary.
 
 ## Scope reminder
 

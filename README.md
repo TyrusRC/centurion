@@ -11,14 +11,14 @@ than fetching anything.
 
 ## Tool coverage
 
-18 adapters across Android, iOS, and platform-generic tooling:
+25 adapters across Android, iOS, and platform-generic tooling:
 
 | Category | Android | iOS | Generic |
 |---|---|---|---|
-| device / QA | adb, scrcpy | idevice (libimobiledevice), ideviceinstaller | |
-| static | jadx, apktool, dex2jar, apksigner | class-dump | opengrep |
+| device / QA | adb, scrcpy | idevice (libimobiledevice + iproxy), ideviceinstaller | |
+| static | jadx, apktool, dex2jar, apksigner, apkid, apkleaks, aapt2 | class-dump, otool, ldid | opengrep, gitleaks |
 | dynamic | objection, drozer | frida-ios-dump | frida |
-| recon | | | radare2, strings |
+| recon | | | radare2, strings, nm |
 | network | | | mitmproxy, tcpdump |
 
 iOS plist/IPA introspection uses the Python standard library (`plistlib`/`zipfile`) — no
@@ -55,14 +55,17 @@ Register the stdio server:
 claude mcp add centurion -- centurion-mcp
 ```
 
-This exposes 23 tools and 3 resources, including:
+This exposes 31 tools and 3 resources, including:
 
-- **Recon:** `doctor`, `device_list`, `ios_device_list`, `recon_strings`, `recon_radare2`
+- **Recon:** `doctor`, `device_list`, `ios_device_list`, `recon_strings`, `recon_symbols`
+  (nm), `recon_radare2`, `apk_badging` (aapt2)
 - **Apps:** `app_list` / `app_pull` (Android), `ios_app_list` / `ios_app_pull` (decrypted IPA)
-- **Static:** `static_decode`, `static_scan` (Opengrep → findings), `ios_static_ipa`,
-  `ios_plist`, `ios_classdump`
+- **Static (Android):** `static_decode`, `static_scan` (Opengrep → findings), `apkid_scan`
+  (packer/obfuscator), `apkleaks_scan` and `secrets_scan` (gitleaks) → findings
+- **Static (iOS):** `ios_static_ipa`, `ios_plist`, `ios_classdump`, `ios_binary_info` (otool
+  hardening → findings), `ios_entitlements` (ldid)
 - **Dynamic:** `objection_run`, `frida_list_scripts`, `frida_run_named_script`,
-  `frida_run_script`, `ssl_unpin`
+  `frida_run_script`, `ssl_unpin`, `ios_relay` (iproxy USB relay)
 - **Network:** `proxy_start` / `proxy_stop` / `proxy_flows` (mitmproxy)
 - **Findings:** `findings_list`
 - **Resources:** `centurion://scripts`, `centurion://findings/{target}`,
