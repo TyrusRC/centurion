@@ -17,3 +17,12 @@ def test_radare2_strings_command():
 
 def test_radare2_info_command():
     assert Radare2Adapter().info_command("/tmp/lib.so") == ["rabin2", "-I", "/tmp/lib.so"]
+
+
+def test_info_returns_stdout():
+    from centurion.adapters.generic.radare2 import Radare2Adapter
+    from centurion.process import FakeRunner
+    fake = FakeRunner()
+    fake.register("rabin2 -I", stdout="arch     arm\nbits     64\n")
+    info = Radare2Adapter(fake).info("/tmp/libfoo.so")
+    assert "arch" in info

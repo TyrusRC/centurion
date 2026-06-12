@@ -26,3 +26,18 @@ def test_mitmproxy_read_command():
     assert MitmproxyAdapter().read_command("/tmp/flows") == [
         "mitmdump", "-nr", "/tmp/flows", "--flow-detail", "1",
     ]
+
+
+def test_parse_flows_extracts_method_and_url():
+    from centurion.adapters.generic.mitmproxy import MitmproxyAdapter
+    dump = (
+        "GET https://api.acme.com/login\n"
+        "    << 200 OK 1.2k\n"
+        "POST https://api.acme.com/pay\n"
+        "    << 403 Forbidden 0b\n"
+    )
+    flows = MitmproxyAdapter().parse_flows(dump)
+    assert flows == [
+        {"method": "GET", "url": "https://api.acme.com/login"},
+        {"method": "POST", "url": "https://api.acme.com/pay"},
+    ]

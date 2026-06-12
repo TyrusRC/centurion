@@ -40,3 +40,9 @@ def test_default_registry_has_all_phase1_adapters():
     runner = FakeRunner()
     names = {a.name for a in default_registry(runner).all()}
     assert {"adb", "scrcpy", "jadx", "frida"}.issubset(names)
+
+
+def test_run_script_command_attaches_over_usb():
+    from centurion.adapters.generic.frida import FridaAdapter
+    cmd = FridaAdapter().run_script_command("com.acme.app", "/tmp/ssl_unpin.js")
+    assert cmd == ["frida", "-U", "-f", "com.acme.app", "-l", "/tmp/ssl_unpin.js"]
