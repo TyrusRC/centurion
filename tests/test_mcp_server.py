@@ -130,12 +130,15 @@ def test_frida_list_scripts_tool():
 
 
 def test_frida_run_named_script_starts_process(tmp_path, monkeypatch):
-    import centurion.session as session_mod
-    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    monkeypatch.setattr(server.session, "default_root", lambda: tmp_path)
 
     class FakeProc:
         pid = 4321
 
+    # No "adb" adapter registered: _auto_screenshot's get_registry().get("adb")
+    # must raise and be swallowed, never falling through to a real adb call.
+    monkeypatch.setattr(server, "get_registry",
+                        lambda: Registry([FridaAdapter(FakeRunner())]))
     monkeypatch.setattr(server, "get_process_manager",
                         lambda target: WorkspaceProcessManager(
                             server.get_workspace(target), spawn=lambda cmd: FakeProc()))
@@ -146,12 +149,15 @@ def test_frida_run_named_script_starts_process(tmp_path, monkeypatch):
 
 
 def test_ssl_unpin_is_named_script_shortcut(tmp_path, monkeypatch):
-    import centurion.session as session_mod
-    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    monkeypatch.setattr(server.session, "default_root", lambda: tmp_path)
 
     class FakeProc:
         pid = 99
 
+    # Same isolation as above: no "adb" adapter, so _auto_screenshot swallows
+    # the lookup failure instead of touching a real device.
+    monkeypatch.setattr(server, "get_registry",
+                        lambda: Registry([FridaAdapter(FakeRunner())]))
     monkeypatch.setattr(server, "get_process_manager",
                         lambda target: WorkspaceProcessManager(
                             server.get_workspace(target), spawn=lambda cmd: FakeProc()))
