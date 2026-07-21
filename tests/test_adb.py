@@ -69,3 +69,27 @@ def test_adb_pull_apk_missing_package_raises():
     import pytest
     with pytest.raises(RuntimeError, match="package not found"):
         AdbAdapter(runner).pull_apk("com.ghost", "/tmp")
+
+
+def test_screenshot_pulls_png_and_returns_artifact(tmp_path):
+    runner = FakeRunner()
+    runner.register("adb shell screencap")
+    runner.register("adb pull")
+    runner.register("adb shell rm")
+    art = AdbAdapter(runner).screenshot(str(tmp_path), name="shot-1", label="after ssl_unpin")
+    assert art.kind == "screenshot"
+    assert art.tool == "adb"
+    assert art.path == str(tmp_path / "shot-1.png")
+    assert art.label == "after ssl_unpin"
+    # a screencap then a pull were issued
+    assert any(c[:3] == ["adb", "shell", "screencap"] for c in runner.calls)
+    assert any(c[1] == "pull" for c in runner.calls)
+
+
+def test_screenshot_targets_serial_when_given(tmp_path):
+    runner = FakeRunner()
+    runner.register("adb -s EMU shell screencap")
+    runner.register("adb -s EMU pull")
+    runner.register("adb -s EMU shell rm")
+    AdbAdapter(runner).screenshot(str(tmp_path), serial="EMU")
+    assert all(c[:2] == ["adb", "-s"] for c in runner.calls)

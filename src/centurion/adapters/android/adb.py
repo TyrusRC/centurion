@@ -86,3 +86,27 @@ class AdbAdapter(Adapter):
             tool="adb",
             label=f"{package}.apk",
         )
+
+    def screenshot(
+        self,
+        out_dir: str,
+        name: str = "screenshot",
+        serial: str | None = None,
+        label: str | None = None,
+    ) -> Artifact:
+        base = ["adb", "-s", serial] if serial else ["adb"]
+        remote = f"/sdcard/{name}.png"
+        dest = str(Path(out_dir) / f"{name}.png")
+        self.runner.run(base + ["shell", "screencap", "-p", remote], timeout=30)
+        self.runner.run(base + ["pull", remote, dest], timeout=60)
+        try:
+            self.runner.run(base + ["shell", "rm", remote], timeout=15)
+        except Exception:  # best-effort cleanup; never fail the capture
+            pass
+        return Artifact(
+            id=f"screenshot-{name}",
+            kind="screenshot",
+            path=dest,
+            tool="adb",
+            label=label,
+        )
