@@ -59,9 +59,29 @@ class Workspace:
     def save(self, session: Session) -> None:
         self.session_file.write_text(json.dumps(asdict(session), indent=2))
 
-    def record_run(self, tool: str, command: list[str], status: str) -> None:
+    def record_run(
+        self,
+        tool: str,
+        command: list[str],
+        status: str,
+        output: str | None = None,
+    ) -> None:
         session = self.load()
-        session.runs.append({"tool": tool, "command": command, "status": status})
+        output_path = None
+        preview = ""
+        if output is not None:
+            runs_dir = self.artifacts_dir / "runs"
+            runs_dir.mkdir(parents=True, exist_ok=True)
+            output_path = f"{len(session.runs):03d}-{tool}.txt"
+            (runs_dir / output_path).write_text(output)
+            preview = output[:2048]
+        session.runs.append({
+            "tool": tool,
+            "command": command,
+            "status": status,
+            "output_path": output_path,
+            "preview": preview,
+        })
         self.save(session)
 
     def add_artifact(self, artifact: Artifact) -> None:

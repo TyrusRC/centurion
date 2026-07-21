@@ -30,7 +30,7 @@ def test_record_run_appends(tmp_path: Path):
     ws.create()
     ws.record_run("jadx", ["jadx", "app.apk"], "ok")
     loaded = ws.load()
-    assert loaded.runs == [{"tool": "jadx", "command": ["jadx", "app.apk"], "status": "ok"}]
+    assert loaded.runs == [{"tool": "jadx", "command": ["jadx", "app.apk"], "status": "ok", "output_path": None, "preview": ""}]
 
 
 def test_add_artifact(tmp_path: Path):
@@ -72,3 +72,23 @@ def test_findings_defaults_empty_for_old_sessions(tmp_path):
     ws.session_file.write_text(json.dumps(data))
     loaded = ws.load()
     assert loaded.findings == []
+
+
+def test_record_run_persists_output_file_and_preview(tmp_path):
+    ws = Workspace(tmp_path, "com.example.app")
+    ws.create()
+    ws.record_run("opengrep", ["opengrep", "scan"], "ok", output="X" * 5000)
+    run = ws.load().runs[0]
+    assert run["tool"] == "opengrep"
+    assert len(run["preview"]) == 2048
+    runs_dir = tmp_path / "com-example-app" / "artifacts" / "runs"
+    assert (runs_dir / run["output_path"]).read_text() == "X" * 5000
+
+
+def test_record_run_without_output_stores_no_file(tmp_path):
+    ws = Workspace(tmp_path, "com.example.app")
+    ws.create()
+    ws.record_run("adb", ["adb", "devices"], "ok")
+    run = ws.load().runs[0]
+    assert run["output_path"] is None
+    assert run["preview"] == ""
