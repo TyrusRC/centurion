@@ -63,3 +63,23 @@ def test_device_list_uses_table_headers(monkeypatch):
     assert "Serial" in result.stdout
     assert "State" in result.stdout
     assert "emulator-5554" in result.stdout
+
+
+def test_screenshot_command_records_artifact(tmp_path, monkeypatch):
+    import centurion.session as session_mod
+
+    monkeypatch.setattr(session_mod, "default_root", lambda: tmp_path)
+    fake = FakeRunner()
+    fake.register("adb shell screencap", stdout="")
+    fake.register("adb pull", stdout="1 file pulled\n")
+    fake.register("adb shell rm", stdout="")
+    monkeypatch.setattr(cli_app, "get_registry", lambda: Registry([AdbAdapter(fake)]))
+
+    result = runner.invoke(cli_app.app, ["screenshot", "Acme", "--label", "login screen"])
+
+    assert result.exit_code == 0
+    ws = session_mod.Workspace(tmp_path, "Acme")
+    artifacts = ws.load().artifacts
+    assert len(artifacts) == 1
+    assert artifacts[0]["kind"] == "screenshot"
+    assert artifacts[0]["label"] == "login screen"

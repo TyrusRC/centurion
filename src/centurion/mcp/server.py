@@ -84,9 +84,12 @@ def static_scan(path: str, target: str, rules: str | None = None) -> list[dict]:
 
 
 @mcp.tool()
-def objection_run(package: str, commands: list[str]) -> str:
+def objection_run(package: str, commands: list[str], target: str) -> str:
     """Run objection startup commands against a package; returns raw output."""
-    return get_registry().get("objection").run(package, commands)
+    output = get_registry().get("objection").run(package, commands)
+    get_workspace(target).record_run("objection", ["objection", *commands], "ok", output=output)
+    _auto_screenshot(target, f"after objection: {package}")
+    return output
 
 
 @mcp.tool()
@@ -101,6 +104,7 @@ def frida_run_named_script(target_app: str, script: str, target: str) -> dict:
     script_path = get_script_library().path(script)
     command = get_registry().get("frida").run_script_command(target_app, script_path)
     proc = get_process_manager(target).start(f"frida-{target_app}", command)
+    _auto_screenshot(target, f"after frida:{script}")
     return proc.to_dict()
 
 
@@ -109,6 +113,7 @@ def frida_run_script(target_app: str, script_path: str, target: str) -> dict:
     """Spawn target_app under Frida with an arbitrary script (raw passthrough)."""
     command = get_registry().get("frida").run_script_command(target_app, script_path)
     proc = get_process_manager(target).start(f"frida-{target_app}", command)
+    _auto_screenshot(target, "after frida:custom-script")
     return proc.to_dict()
 
 
@@ -288,6 +293,38 @@ def ios_relay(local_port: int, device_port: int, target: str) -> dict:
     command = get_registry().get("idevice").relay_command(local_port, device_port)
     proc = get_process_manager(target).start(f"iproxy-{local_port}", command)
     return proc.to_dict()
+
+
+@mcp.tool()
+def screenshot(target: str, label: str | None = None) -> dict:
+    """Capture an Android device screenshot into the workspace as evidence."""
+    ws = get_workspace(target)
+    name = f"screenshot-{len(ws.load().artifacts) + 1}"
+    artifact = get_registry().get("adb").screenshot(
+        str(ws.artifacts_dir), name=name, label=label
+    )
+    ws.add_artifact(artifact)
+    return artifact.to_dict()
+
+
+@mcp.tool()
+def ios_screenshot(target: str, label: str | None = None) -> dict:
+    """Capture an iOS device screenshot into the workspace as evidence."""
+    ws = get_workspace(target)
+    name = f"screenshot-{len(ws.load().artifacts) + 1}"
+    artifact = get_registry().get("idevice").screenshot(
+        str(ws.artifacts_dir), name=name, label=label
+    )
+    ws.add_artifact(artifact)
+    return artifact.to_dict()
+
+
+def _auto_screenshot(target: str, label: str) -> dict | None:
+    """Best-effort evidence capture after a dynamic run. Never raises."""
+    try:
+        return screenshot(target, label=label)
+    except Exception:
+        return None
 
 
 @mcp.resource("centurion://scripts")

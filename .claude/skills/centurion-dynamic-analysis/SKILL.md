@@ -15,7 +15,7 @@ Attach, hook, observe. Use the Centurion MCP server. Operate only on apps you ar
 
 3. **Run a hook.** Call `frida_run_named_script(target_app, script, target)` to spawn the app under a bundled script, or `ssl_unpin(target_app, target)` for the common pinning bypass. For a custom script, use `frida_run_script(target_app, script_path, target)`. Each returns a durable process handle that survives across sessions.
 
-4. **Explore with objection.** For interactive-style runtime queries, call `objection_run(package, commands)` with startup commands (e.g. `android hooking list classes`).
+4. **Explore with objection.** For interactive-style runtime queries, call `objection_run(package, commands, target)` with startup commands (e.g. `android hooking list classes`).
 
 5. **Report.** Summarize what the hooks observed. Long-running handles appear in `centurion://processes/{target}`.
 

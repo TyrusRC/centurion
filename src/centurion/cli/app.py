@@ -62,6 +62,24 @@ def install(
         console.print(f"  {status.name}: {status.install_hint}")
 
 
+@app.command()
+def screenshot(
+    target: str,
+    label: str = typer.Option(None),
+    ios: bool = typer.Option(False),
+) -> None:
+    """Capture a device screenshot into the target workspace."""
+    from .. import session as _session
+
+    ws = _session.Workspace(_session.default_root(), target)
+    ws.create()
+    tool = "idevice" if ios else "adb"
+    name = f"screenshot-{len(ws.load().artifacts) + 1}"
+    artifact = get_registry().get(tool).screenshot(str(ws.artifacts_dir), name=name, label=label)
+    ws.add_artifact(artifact)
+    typer.echo(artifact.path)
+
+
 @device_app.command("list")
 def device_list() -> None:
     """List connected Android devices."""
