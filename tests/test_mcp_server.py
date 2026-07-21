@@ -113,13 +113,14 @@ def test_static_scan_records_findings(tmp_path, monkeypatch):
     assert server.get_workspace("Acme").load().findings[0]["title"] == "cleartext"
 
 
-def test_objection_run_tool(monkeypatch):
+def test_objection_run_tool(tmp_path, monkeypatch):
     fake = FakeRunner()
     fake.register("objection -g com.acme.app explore",
                   stdout="android hooking ... done\n")
     monkeypatch.setattr(server, "get_registry",
                         lambda: Registry([ObjectionAdapter(fake)]))
-    out = server.objection_run("com.acme.app", ["android hooking list classes"])
+    monkeypatch.setattr(server.session, "default_root", lambda: tmp_path)
+    out = server.objection_run("com.acme.app", ["android hooking list classes"], "Acme")
     assert "done" in out
 
 
@@ -238,6 +239,7 @@ SHIPPED_TOOLS = {
     "apkid_scan", "apkleaks_scan", "secrets_scan", "apk_badging", "recon_symbols",
     "ios_device_list", "ios_app_list", "ios_app_pull", "ios_static_ipa", "ios_plist",
     "ios_classdump", "ios_binary_info", "ios_entitlements", "ios_relay",
+    "screenshot", "ios_screenshot",
 }
 
 
@@ -296,6 +298,44 @@ def test_ios_app_pull_records_artifact(tmp_path, monkeypatch):
     assert result["kind"] == "binary"
     assert result["path"].endswith("com.acme.bank.ipa")
     assert server.get_workspace("AcmeIOS").load().artifacts[0]["id"] == "ipa-com.acme.bank"
+
+
+def test_screenshot_tool_records_artifact(tmp_path, monkeypatch):
+    from centurion.mcp import server
+
+    class FakeAdb:
+        def screenshot(self, out_dir, name="screenshot", serial=None, label=None):
+            from centurion.models import Artifact
+            p = tmp_path / f"{name}.png"
+            p.write_bytes(b"\x89PNG")
+            return Artifact(id=f"screenshot-{name}", kind="screenshot",
+                            path=str(p), tool="adb", label=label)
+
+    class FakeReg:
+        def get(self, name):
+            return FakeAdb()
+
+    monkeypatch.setattr(server, "get_registry", lambda: FakeReg())
+    monkeypatch.setattr(server.session, "default_root", lambda: tmp_path / "ws")
+
+    result = server.screenshot("com.example.app", label="login screen")
+    assert result["kind"] == "screenshot"
+    assert result["label"] == "login screen"
+    ws = server.get_workspace("com.example.app")
+    assert any(a["kind"] == "screenshot" for a in ws.load().artifacts)
+
+
+def test_auto_screenshot_never_raises(monkeypatch, tmp_path):
+    from centurion.mcp import server
+
+    class BoomReg:
+        def get(self, name):
+            raise RuntimeError("no device")
+
+    monkeypatch.setattr(server, "get_registry", lambda: BoomReg())
+    monkeypatch.setattr(server.session, "default_root", lambda: tmp_path / "ws")
+    # Must swallow the error and return None, not propagate.
+    assert server._auto_screenshot("com.example.app", "after frida") is None
 
 
 def test_ios_plist_tool(tmp_path):
