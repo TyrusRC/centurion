@@ -76,6 +76,7 @@ class Finding:
     detail: str = ""
     location: str | None = None
     mastg_refs: list[str] = field(default_factory=list)
+    masvs_refs: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
