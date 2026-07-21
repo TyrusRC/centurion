@@ -40,3 +40,13 @@ def test_info_returns_keyed_values():
 
 def test_relay_command_builds_iproxy_invocation():
     assert IdeviceAdapter().relay_command(2222, 22) == ["iproxy", "2222", "22"]
+
+
+def test_ios_screenshot_returns_artifact(tmp_path):
+    runner = FakeRunner()
+    runner.register("idevicescreenshot")
+    art = IdeviceAdapter(runner).screenshot(str(tmp_path), name="ios-1")
+    assert art.kind == "screenshot"
+    assert art.tool == "idevicescreenshot"
+    assert art.path == str(tmp_path / "ios-1.png")
+    assert runner.calls[-1][0] == "idevicescreenshot"

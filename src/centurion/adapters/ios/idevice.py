@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from ...models import AppleDevice, Category, Platform
+from pathlib import Path
+
+from ...models import Artifact, AppleDevice, Category, Platform
 from ..base import Adapter
 
 
@@ -53,3 +55,24 @@ class IdeviceAdapter(Adapter):
                 AppleDevice(udid=udid, name=meta["name"], ios_version=meta["ios_version"])
             )
         return devices
+
+    def screenshot(
+        self,
+        out_dir: str,
+        name: str = "screenshot",
+        udid: str | None = None,
+        label: str | None = None,
+    ) -> Artifact:
+        dest = str(Path(out_dir) / f"{name}.png")
+        cmd = ["idevicescreenshot"]
+        if udid:
+            cmd += ["-u", udid]
+        cmd.append(dest)
+        self.runner.run(cmd, timeout=30)
+        return Artifact(
+            id=f"screenshot-{name}",
+            kind="screenshot",
+            path=dest,
+            tool="idevicescreenshot",
+            label=label,
+        )
