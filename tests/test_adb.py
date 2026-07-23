@@ -93,3 +93,15 @@ def test_screenshot_targets_serial_when_given(tmp_path):
     runner.register("adb -s EMU shell rm")
     AdbAdapter(runner).screenshot(str(tmp_path), serial="EMU")
     assert all(c[:2] == ["adb", "-s"] for c in runner.calls)
+
+
+def test_screenshot_removes_device_temp_even_when_pull_fails(tmp_path):
+    import pytest
+
+    runner = FakeRunner()
+    runner.register("adb shell screencap")
+    runner.register("adb shell rm")  # pull intentionally unregistered -> raises
+    with pytest.raises(FileNotFoundError):
+        AdbAdapter(runner).screenshot(str(tmp_path), name="shot-1")
+    # the on-device screencap file must still be cleaned up on the failure path
+    assert any(c[:3] == ["adb", "shell", "rm"] for c in runner.calls)

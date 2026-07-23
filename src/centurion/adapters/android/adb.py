@@ -98,11 +98,13 @@ class AdbAdapter(Adapter):
         remote = f"/sdcard/{name}.png"
         dest = str(Path(out_dir) / f"{name}.png")
         self.runner.run(base + ["shell", "screencap", "-p", remote], timeout=30)
-        self.runner.run(base + ["pull", remote, dest], timeout=60)
         try:
-            self.runner.run(base + ["shell", "rm", remote], timeout=15)
-        except Exception:  # best-effort cleanup; never fail the capture
-            pass
+            self.runner.run(base + ["pull", remote, dest], timeout=60)
+        finally:
+            try:
+                self.runner.run(base + ["shell", "rm", remote], timeout=15)
+            except Exception:  # best-effort cleanup; never fail the capture
+                pass
         return Artifact(
             id=f"screenshot-{name}",
             kind="screenshot",
