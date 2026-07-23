@@ -11,18 +11,21 @@ than fetching anything.
 
 ## Tool coverage
 
-25 adapters across Android, iOS, and platform-generic tooling:
+26 adapters across Android, iOS, and platform-generic tooling:
 
 | Category | Android | iOS | Generic |
 |---|---|---|---|
 | device / QA | adb, scrcpy | idevice (libimobiledevice + iproxy), ideviceinstaller | |
-| static | jadx, apktool, dex2jar, apksigner, apkid, apkleaks, aapt2 | class-dump, otool, ldid | opengrep, gitleaks |
+| static | jadx, apktool, dex2jar, apksigner, apkid, apkleaks, aapt2 | class-dump, otool, ldid | opengrep, gitleaks, mantis |
 | dynamic | objection, drozer | frida-ios-dump | frida |
 | recon | | | radare2, strings, nm |
 | network | | | mitmproxy, tcpdump |
 
 iOS plist/IPA introspection uses the Python standard library (`plistlib`/`zipfile`) — no
-external tool required.
+external tool required. `mantis` is a findings source for the sibling
+[mantis-sast](https://github.com/TyrusRC/mantis) project: its JSON parser is wired in, but
+live invocation is guarded until that library ships a stable entry point (Centurion ingests
+mantis's validated findings rather than scoring vulnerabilities itself).
 
 ## Install
 
@@ -45,6 +48,8 @@ centurion version
 centurion doctor                 # tool inventory + install status
 centurion install --group ios    # install hints for the iOS tools
 centurion device list            # connected Android devices
+centurion screenshot <target>    # capture a device screenshot into the workspace
+centurion report <target>        # render the workspace report (Markdown + HTML)
 ```
 
 ## MCP (Claude Code)
@@ -55,7 +60,7 @@ Register the stdio server:
 claude mcp add centurion -- centurion-mcp
 ```
 
-This exposes 31 tools and 3 resources, including:
+This exposes 34 tools and 3 resources, including:
 
 - **Recon:** `doctor`, `device_list`, `ios_device_list`, `recon_strings`, `recon_symbols`
   (nm), `recon_radare2`, `apk_badging` (aapt2)
@@ -67,7 +72,10 @@ This exposes 31 tools and 3 resources, including:
 - **Dynamic:** `objection_run`, `frida_list_scripts`, `frida_run_named_script`,
   `frida_run_script`, `ssl_unpin`, `ios_relay` (iproxy USB relay)
 - **Network:** `proxy_start` / `proxy_stop` / `proxy_flows` (mitmproxy)
-- **Findings:** `findings_list`
+- **Evidence:** `screenshot` (adb), `ios_screenshot` (idevicescreenshot) — plus dynamic runs
+  (objection, Frida scripts) auto-capture a screenshot as evidence
+- **Findings & reporting:** `findings_list` (MASVS-enriched), `report_generate` (Markdown +
+  self-contained HTML with embedded screenshots)
 - **Resources:** `centurion://scripts`, `centurion://findings/{target}`,
   `centurion://processes/{target}`
 
