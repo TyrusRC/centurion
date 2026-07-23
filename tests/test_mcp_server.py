@@ -245,7 +245,7 @@ SHIPPED_TOOLS = {
     "apkid_scan", "apkleaks_scan", "secrets_scan", "apk_badging", "recon_symbols",
     "ios_device_list", "ios_app_list", "ios_app_pull", "ios_static_ipa", "ios_plist",
     "ios_classdump", "ios_binary_info", "ios_entitlements", "ios_relay",
-    "screenshot", "ios_screenshot",
+    "screenshot", "ios_screenshot", "report_generate",
 }
 
 
@@ -509,3 +509,25 @@ def test_ios_relay_starts_process(tmp_path, monkeypatch):
     result = server.ios_relay(2222, 22, "AcmeIOS")
     assert result["handle"] == "iproxy-2222"
     assert result["command"] == ["iproxy", "2222", "22"]
+
+
+def test_report_generate_writes_files(tmp_path, monkeypatch):
+    from centurion.mcp import server
+    monkeypatch.setattr(server.session, "default_root", lambda: tmp_path / "ws")
+    ws = server.get_workspace("com.example.app")
+    from centurion.models import Finding
+    ws.add_finding(Finding(id="gitleaks:k:1", title="key", severity="high", tool="gitleaks"))
+    out = server.report_generate("com.example.app", format="both")
+    from pathlib import Path
+    assert Path(out["markdown"]).exists()
+    assert Path(out["html"]).exists()
+
+
+def test_findings_list_is_masvs_enriched(tmp_path, monkeypatch):
+    from centurion.mcp import server
+    monkeypatch.setattr(server.session, "default_root", lambda: tmp_path / "ws")
+    ws = server.get_workspace("com.example.app")
+    from centurion.models import Finding
+    ws.add_finding(Finding(id="gitleaks:k:1", title="key", severity="high", tool="gitleaks"))
+    findings = server.findings_list("com.example.app")
+    assert findings[0]["masvs_refs"] == ["MASVS-STORAGE-1"]

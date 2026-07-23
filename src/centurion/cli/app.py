@@ -80,6 +80,21 @@ def screenshot(
     typer.echo(artifact.path)
 
 
+@app.command()
+def report(
+    target: str,
+    format: str = typer.Option("both", help="both|md|html"),
+) -> None:
+    """Generate the Markdown + HTML report for a target workspace."""
+    from .. import report as _report, session as _session
+
+    ws = _session.Workspace(_session.default_root(), target)
+    ws.create()
+    out = _report.generate(ws, fmt=format)
+    for kind, path in out.items():
+        typer.echo(f"{kind}: {path}")
+
+
 @device_app.command("list")
 def device_list() -> None:
     """List connected Android devices."""
