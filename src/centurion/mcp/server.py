@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 
+from .. import masvs
+from .. import report
 from .. import session as session
 from ..ios.ipa import ipa_info, read_plist
 from ..models import Finding
@@ -80,6 +82,9 @@ def static_scan(path: str, target: str, rules: str | None = None) -> list[dict]:
     findings = get_registry().get("opengrep").scan(path, rules)
     for finding in findings:
         ws.add_finding(finding)
+    import json
+    ws.record_run("opengrep", ["opengrep", "scan", path], "ok",
+                  output=json.dumps([f.to_dict() for f in findings], indent=2))
     return [f.to_dict() for f in findings]
 
 
@@ -164,8 +169,14 @@ def recon_radare2(path: str) -> dict:
 
 @mcp.tool()
 def findings_list(target: str) -> list[dict]:
-    """List recorded findings for the target workspace (for triage)."""
-    return get_workspace(target).load().findings
+    """List MASVS-enriched findings for the target workspace (for triage)."""
+    return masvs.enrich(get_workspace(target).load().findings)
+
+
+@mcp.tool()
+def report_generate(target: str, format: str = "both") -> dict:
+    """Render the target workspace into a Markdown + self-contained HTML report."""
+    return report.generate(get_workspace(target), fmt=format)
 
 
 @mcp.tool()
