@@ -50,6 +50,7 @@ def default_registry(runner: Runner | None = None) -> Registry:
     from .adapters.android.scrcpy import ScrcpyAdapter
     from .adapters.generic.frida import FridaAdapter
     from .adapters.generic.gitleaks import GitleaksAdapter
+    from .adapters.generic.mantis import MantisAdapter
     from .adapters.generic.mitmproxy import MitmproxyAdapter
     from .adapters.generic.nm import NmAdapter
     from .adapters.generic.radare2 import Radare2Adapter
@@ -83,6 +84,7 @@ def default_registry(runner: Runner | None = None) -> Registry:
             ApkleaksAdapter(runner),
             Aapt2Adapter(runner),
             GitleaksAdapter(runner),
+            MantisAdapter(runner),
             NmAdapter(runner),
             IdeviceAdapter(runner),
             IdeviceinstallerAdapter(runner),

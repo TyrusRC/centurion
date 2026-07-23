@@ -42,7 +42,7 @@ def test_default_registry_has_all_adapters():
         "apktool", "dex2jar", "apksigner", "opengrep",
         "radare2", "strings", "objection", "drozer",
         "mitmproxy", "tcpdump",
-        "apkid", "apkleaks", "aapt2", "gitleaks", "nm",
+        "apkid", "apkleaks", "aapt2", "gitleaks", "mantis", "nm",
         "idevice", "ideviceinstaller", "frida-ios-dump", "class-dump",
         "otool", "ldid",
     }
