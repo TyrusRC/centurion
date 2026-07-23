@@ -56,7 +56,8 @@ def render_markdown(model: dict) -> str:
             lines.append(f"- **{run['tool']}** ({run['status']}): "
                          f"`{' '.join(run['command'])}`")
             if run.get("preview"):
-                lines.append(f"  ```\n  {run['preview'].strip()}\n  ```")
+                body = "\n".join(f"  {ln}" for ln in run["preview"].strip().splitlines())
+                lines.append(f"  ```\n{body}\n  ```")
         lines.append("")
 
     return "\n".join(lines)

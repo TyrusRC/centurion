@@ -38,6 +38,18 @@ def test_render_markdown_contains_findings_and_coverage(tmp_path):
     assert "found 1 secret" in md  # run evidence preview
 
 
+def test_render_markdown_indents_every_preview_line(tmp_path):
+    ws = Workspace(tmp_path, "com.example.app")
+    ws.create()
+    ws.record_run("opengrep", ["opengrep", "scan"], "ok",
+                  output="line one\nline two\nline three")
+    md = report.render_markdown(report.build_report(ws))
+    # Every line of a multi-line preview must carry the 2-space list indent so the
+    # fenced code block stays inside its list item (not just the first line).
+    for text in ("line one", "line two", "line three"):
+        assert f"  {text}" in md
+
+
 def test_render_html_embeds_screenshot_as_base64(tmp_path):
     html = report.render_html(report.build_report(_seed(tmp_path)))
     assert "data:image/png;base64," in html
