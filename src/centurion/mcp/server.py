@@ -362,3 +362,80 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+def _ensure(name: str):
+    """Return (adapter, None) if installed, else (adapter, a hint dict).
+
+    Keeps the README's "missing tool -> install hint" promise on the runtime
+    path instead of leaking a raw FileNotFoundError to the MCP client.
+    """
+    adapter = get_registry().get(name)
+    status = adapter.detect()
+    if not status.installed:
+        return adapter, {"error": f"{name} not installed",
+                         "install_hint": status.install_hint}
+    return adapter, None
+
+
+@mcp.tool()
+def static_decompile(apk: str, target: str) -> dict:
+    """Decompile an APK's DEX to Java source with jadx; records an artifact."""
+    from pathlib import Path
+    adapter, miss = _ensure("jadx")
+    if miss:
+        return miss
+    ws = get_workspace(target)
+    art = adapter.decompile(apk, str(ws.artifacts_dir / f"jadx-{Path(apk).stem}"))
+    ws.add_artifact(art)
+    return art.to_dict()
+
+
+@mcp.tool()
+def apk_verify_signature(apk: str) -> dict:
+    """Verify an APK's signing blocks (v1-v4) with apksigner."""
+    adapter, miss = _ensure("apksigner")
+    if miss:
+        return miss
+    return adapter.verify(apk).to_dict()
+
+
+@mcp.tool()
+def dex_to_jar(input_path: str, target: str) -> dict:
+    """Convert a DEX/APK to a JAR with dex2jar; records an artifact."""
+    from pathlib import Path
+    adapter, miss = _ensure("dex2jar")
+    if miss:
+        return miss
+    ws = get_workspace(target)
+    out_jar = str(ws.artifacts_dir / (Path(input_path).stem + ".jar"))
+    art = adapter.convert(input_path, out_jar)
+    ws.add_artifact(art)
+    return art.to_dict()
+
+
+@mcp.tool()
+def drozer_run(module: str, target: str, args: str = "") -> dict:
+    """Run a drozer module against the connected device; returns its output."""
+    adapter, miss = _ensure("drozer")
+    if miss:
+        return miss
+    out = adapter.run_module(module, args)
+    get_workspace(target).record_run("drozer", ["drozer", "run", module], "ok", output=out)
+    return {"module": module, "output": out}
+
+
+@mcp.tool()
+def mantis_scan(source_dir: str, target: str, llm: bool = False) -> dict:
+    """Run mantis (SAST) over a source/decompiled tree; records + returns findings.
+
+    The mobile use case: point this at jadx/apktool output to statically audit the
+    recovered code. SAST-only by default; `llm=True` adds mantis's LLM triage."""
+    adapter, miss = _ensure("mantis")
+    if miss:
+        return miss
+    findings = adapter.audit(source_dir, llm=llm)
+    ws = get_workspace(target)
+    for f in findings:
+        ws.add_finding(f)
+    return {"count": len(findings), "findings": [f.to_dict() for f in findings]}
