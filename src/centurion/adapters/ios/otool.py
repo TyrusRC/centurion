@@ -23,8 +23,14 @@ class OtoolAdapter(Adapter):
     platform = Platform.IOS
     category = Category.STATIC
 
+    def __init__(self, runner=None) -> None:
+        super().__init__(runner)
+        # On Linux the tool is `llvm-otool`; prefer real otool, fall back to it.
+        if self.runner.which("otool") is None and self.runner.which("llvm-otool") is not None:
+            self.binary = "llvm-otool"
+
     def version_command(self) -> list[str]:
-        return ["otool", "--version"]
+        return [self.binary, "--version"]
 
     def install_hint(self) -> str:
         return (
@@ -33,16 +39,16 @@ class OtoolAdapter(Adapter):
         )
 
     def header_command(self, binary: str) -> list[str]:
-        return ["otool", "-hv", binary]
+        return [self.binary, "-hv", binary]
 
     def load_commands_command(self, binary: str) -> list[str]:
-        return ["otool", "-l", binary]
+        return [self.binary, "-l", binary]
 
     def symbols_command(self, binary: str) -> list[str]:
-        return ["otool", "-Iv", binary]
+        return [self.binary, "-Iv", binary]
 
     def libraries_command(self, binary: str) -> list[str]:
-        return ["otool", "-L", binary]
+        return [self.binary, "-L", binary]
 
     def parse_pie(self, header_stdout: str) -> bool:
         return "PIE" in header_stdout
