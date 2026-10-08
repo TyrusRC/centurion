@@ -107,3 +107,37 @@ def device_list() -> None:
 
 if __name__ == "__main__":
     app()
+
+
+def _cli_tool_or_exit(name: str):
+    adapter = get_registry().get(name)
+    status = adapter.detect()
+    if not status.installed:
+        console.print(f"[red]{name} not installed.[/red] {status.install_hint}")
+        raise typer.Exit(2)
+    return adapter
+
+
+@app.command()
+def decompile(apk: str, out: str = typer.Option(..., "-o", "--out")) -> None:
+    """Decompile an APK's DEX to Java source with jadx."""
+    art = _cli_tool_or_exit("jadx").decompile(apk, out)
+    console.print(f"decompiled -> {art.path}")
+
+
+@app.command()
+def decode(apk: str, out: str = typer.Option(..., "-o", "--out")) -> None:
+    """Decode an APK's manifest/resources with apktool."""
+    art = _cli_tool_or_exit("apktool").decode(apk, out)
+    console.print(f"decoded -> {art.path}")
+
+
+@app.command()
+def scan(path: str, rules: str = typer.Option(None, "--rules")) -> None:
+    """Scan a decoded/source tree for issues with opengrep."""
+    findings = _cli_tool_or_exit("opengrep").scan(path, rules)
+    table = Table("Severity", "Rule", "Location")
+    for f in findings:
+        table.add_row(f.severity, f.title, f.location or "-")
+    console.print(table)
+    console.print(f"{len(findings)} finding(s)")
