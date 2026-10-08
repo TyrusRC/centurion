@@ -12,3 +12,7 @@ venv/
 
 # Centurion runtime workspaces
 .centurion/
+
+# Local design docs + session scratch (match chimera/mantis convention)
+docs/
+.superpowers/
