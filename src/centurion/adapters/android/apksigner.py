@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import re
+
 from dataclasses import asdict, dataclass
 from typing import Any
 
 from ...models import Category, Platform
 from ..base import Adapter
+
+
+_SCHEME_RE = re.compile(r"using (v\d) scheme[^:]*:\s*(true|false)", re.I)
 
 
 @dataclass
@@ -33,14 +38,13 @@ class ApksignerAdapter(Adapter):
         return ["apksigner", "verify", "--print-certs", "-v", apk]
 
     def parse_verify(self, stdout: str) -> SignatureInfo:
-        def verified(scheme: str) -> bool:
-            for line in stdout.splitlines():
-                low = line.strip().lower()
-                if f"using {scheme} scheme" in low:
-                    return low.endswith("true")
-            return False
-
-        return SignatureInfo(v1=verified("v1"), v2=verified("v2"), v3=verified("v3"))
+        # apksigner prints e.g. "Verified using v2 scheme (APK Signature Scheme v2): true".
+        # Extract the boolean per scheme defensively (value after the colon), rather than
+        # matching the whole line's suffix.
+        found = {m.group(1).lower(): m.group(2).lower() == "true"
+                 for m in _SCHEME_RE.finditer(stdout)}
+        return SignatureInfo(v1=found.get("v1", False), v2=found.get("v2", False),
+                             v3=found.get("v3", False))
 
     def verify(self, apk: str) -> SignatureInfo:
         result = self.runner.run(self.verify_command(apk), timeout=60)

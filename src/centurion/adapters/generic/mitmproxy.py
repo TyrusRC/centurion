@@ -30,6 +30,9 @@ class MitmproxyAdapter(Adapter):
 
     _METHODS = ("GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS")
 
+    # NOTE: parses mitmdump's human --flow-detail output (keys on an HTTP method as
+    # the first token); brittle to format/locale changes. Upgrade path: a mitmdump -s
+    # export addon emitting JSON lines.
     def parse_flows(self, stdout: str) -> list[dict]:
         flows: list[dict] = []
         for line in stdout.splitlines():

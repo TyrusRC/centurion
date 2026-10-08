@@ -51,6 +51,9 @@ class Workspace:
         return session
 
     def load(self) -> Session:
+        # NOTE: unlocked read-modify-write of session.json. Safe for the stdio
+        # MCP server (one request at a time) and the CLI; concurrent writers would
+        # race. Upgrade path: fcntl.flock around load/save if parallel drivers appear.
         data = json.loads(self.session_file.read_text())
         known = {f.name for f in fields(Session)}
         data = {k: v for k, v in data.items() if k in known}
