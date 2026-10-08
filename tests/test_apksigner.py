@@ -34,3 +34,15 @@ def test_apksigner_verify_runs_and_parses():
     runner.register("apksigner verify", stdout=SAMPLE)
     info = ApksignerAdapter(runner).verify("/tmp/app.apk")
     assert info.to_dict() == {"v1": True, "v2": True, "v3": False}
+
+
+def test_parse_verify_robust_to_trailing_text_and_missing_scheme():
+    from centurion.adapters.android.apksigner import ApksignerAdapter
+    out = ("Verified using v1 scheme (JAR signing): false\n"
+           "Verified using v2 scheme (APK Signature Scheme v2): true\n"
+           "Verified using v3 scheme (APK Signature Scheme v3): false\n"
+           "Number of signers: 1\n")
+    info = ApksignerAdapter().parse_verify(out)
+    assert info.v1 is False and info.v2 is True and info.v3 is False
+    # no scheme lines -> all False, no crash
+    assert ApksignerAdapter().parse_verify("DOES NOT VERIFY\n").v2 is False
