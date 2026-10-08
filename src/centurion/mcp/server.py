@@ -439,3 +439,12 @@ def mantis_scan(source_dir: str, target: str, llm: bool = False) -> dict:
     for f in findings:
         ws.add_finding(f)
     return {"count": len(findings), "findings": [f.to_dict() for f in findings]}
+
+
+@mcp.tool()
+def install_plan(group: str = "all") -> list[dict]:
+    """List the tools in a group (android|ios|static|dynamic|network|recon|all) that
+    are not yet installed, each with its install hint — the grouped equivalent of the
+    CLI `install` command."""
+    from ..install import plan_install
+    return [s.to_dict() for s in plan_install(get_registry(), group)]

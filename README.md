@@ -23,9 +23,11 @@ than fetching anything.
 
 iOS plist/IPA introspection uses the Python standard library (`plistlib`/`zipfile`) — no
 external tool required. `mantis` is a findings source for the sibling
-[mantis-sast](https://github.com/TyrusRC/mantis) project: its JSON parser is wired in, but
-live invocation is guarded until that library ships a stable entry point (Centurion ingests
-mantis's validated findings rather than scoring vulnerabilities itself).
+[mantis-sast](https://github.com/TyrusRC/mantis) project: `MantisAdapter.audit()` calls
+mantis's programmatic entry point (`from mantis import audit`) and maps its records into
+Centurion `Finding`s, and the `mantis_scan` MCP tool exposes it (point it at jadx/apktool
+output to statically audit recovered code). Centurion ingests mantis's validated findings
+rather than scoring vulnerabilities itself.
 
 ## Install
 
