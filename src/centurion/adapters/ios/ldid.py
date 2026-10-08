@@ -31,7 +31,7 @@ class LdidAdapter(Adapter):
             return {}
         try:
             return plistlib.loads(text.encode())
-        except plistlib.InvalidFileException:
+        except Exception:  # InvalidFileException, ExpatError, ValueError on ldid error text
             return {}
 
     def entitlements(self, binary: str) -> dict:
