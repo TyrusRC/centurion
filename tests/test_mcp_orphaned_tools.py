@@ -24,3 +24,10 @@ def test_missing_tool_returns_install_hint_not_traceback(monkeypatch):
 
     out3 = srv.drozer_run("app.package.info", "/tmp/centurion-test-target")
     assert out3.get("error") and out3.get("install_hint")
+
+
+def test_install_plan_tool():
+    out = srv.install_plan("ios")
+    assert isinstance(out, list)
+    # every entry is a ToolStatus dict with an install hint for missing tools
+    assert all("name" in s for s in out)
