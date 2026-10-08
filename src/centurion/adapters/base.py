@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from abc import ABC, abstractmethod
 
 from ..models import Category, Platform, ToolStatus
@@ -35,6 +36,11 @@ class Adapter(ABC):
             result = self.runner.run(self.version_command(), timeout=10)
         except FileNotFoundError:
             return self._status(installed=False)
+        except (subprocess.TimeoutExpired, OSError):
+            # A slow/hanging --version, or a present-but-non-executable file, must
+            # not crash doctor; trust which() for presence.
+            path = self.runner.which(self.binary)
+            return self._status(installed=path is not None, path=path)
 
         path = self.runner.which(self.binary)
         installed = path is not None or result.returncode == 0
