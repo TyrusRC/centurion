@@ -1,5 +1,4 @@
 from centurion.adapters.android.adb import AdbAdapter
-from centurion.adapters.generic.frida import FridaAdapter
 from centurion.install import _selects, plan_install
 from centurion.models import ToolStatus
 from centurion.process import FakeRunner
