@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 
+from .. import haruspex
 from .. import masvs
 from .. import report
 from .. import session as session
@@ -169,8 +170,13 @@ def recon_radare2(path: str) -> dict:
 
 @mcp.tool()
 def findings_list(target: str) -> list[dict]:
-    """List MASVS-enriched findings for the target workspace (for triage)."""
-    return masvs.enrich(get_workspace(target).load().findings)
+    """List MASVS-enriched findings for the target workspace (for triage).
+
+    When CENTURION_HARUSPEX_URL is set, a fail-open Haruspex pass annotates each finding
+    with a true-positive likelihood and ranks the list highest-first. It never drops a
+    finding (they remain in the workspace), so it cannot cause a missed finding.
+    """
+    return haruspex.triage(masvs.enrich(get_workspace(target).load().findings))
 
 
 @mcp.tool()
