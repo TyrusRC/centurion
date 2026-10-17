@@ -31,7 +31,11 @@ def base_url() -> str:
 def _adjudicate(state: str, endpoint: str, timeout: int = 30) -> float | None:
     if not state:
         return None
-    body = json.dumps({"model": "haruspex", "state": state, "questions": {"q": _Q}}).encode()
+    # domain="mobile" routes to the dedicated mobile adapter (the web/SOC model
+    # misses mobile findings, e.g. a hardcoded secret); a single-adapter engine
+    # ignores the hint and answers from its one model.
+    body = json.dumps({"model": "haruspex", "domain": "mobile", "state": state,
+                       "questions": {"q": _Q}}).encode()
     req = urllib.request.Request(endpoint.rstrip("/") + "/v1/evaluate", data=body,
                                  headers={"Content-Type": "application/json"})
     try:
