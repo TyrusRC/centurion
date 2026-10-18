@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -121,21 +123,25 @@ def _cli_tool_or_exit(name: str):
 @app.command()
 def decompile(apk: str, out: str = typer.Option(..., "-o", "--out")) -> None:
     """Decompile an APK's DEX to Java source with jadx."""
-    art = _cli_tool_or_exit("jadx").decompile(apk, out)
+    # jadx is a separate (Java) process; a relative --out fails to create its
+    # directory when jadx's own cwd resolution doesn't match ours (observed
+    # under a sandboxed shell). Resolve before handing it off — absolute paths
+    # are unambiguous regardless of which process's cwd is doing the resolving.
+    art = _cli_tool_or_exit("jadx").decompile(str(Path(apk).resolve()), str(Path(out).resolve()))
     console.print(f"decompiled -> {art.path}")
 
 
 @app.command()
 def decode(apk: str, out: str = typer.Option(..., "-o", "--out")) -> None:
     """Decode an APK's manifest/resources with apktool."""
-    art = _cli_tool_or_exit("apktool").decode(apk, out)
+    art = _cli_tool_or_exit("apktool").decode(str(Path(apk).resolve()), str(Path(out).resolve()))
     console.print(f"decoded -> {art.path}")
 
 
 @app.command()
 def scan(path: str, rules: str = typer.Option(None, "--rules")) -> None:
     """Scan a decoded/source tree for issues with opengrep."""
-    findings = _cli_tool_or_exit("opengrep").scan(path, rules)
+    findings = _cli_tool_or_exit("opengrep").scan(str(Path(path).resolve()), rules)
     table = Table("Severity", "Rule", "Location")
     for f in findings:
         table.add_row(f.severity, f.title, f.location or "-")
