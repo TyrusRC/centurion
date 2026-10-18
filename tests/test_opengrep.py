@@ -63,3 +63,29 @@ def test_opengrep_scan_runs_and_parses(tmp_path):
 def test_default_rules_path_under_centurion_home():
     assert default_rules_path().name == "rules"
     assert ".centurion" in str(default_rules_path())
+
+
+def test_opengrep_scan_falls_back_to_auto_when_no_local_ruleset(monkeypatch, tmp_path):
+    # No explicit rules path, and ~/.centurion/rules doesn't exist: scan must
+    # still run (via opengrep's own "auto" registry config) instead of
+    # refusing outright — a scan with the community ruleset beats no scan.
+    monkeypatch.setattr(
+        "centurion.adapters.generic.opengrep.default_rules_path",
+        lambda: tmp_path / "no-rules-here",
+    )
+    runner = FakeRunner()
+    runner.register("opengrep scan --config", stdout=SAMPLE_JSON)
+    findings = OpengrepAdapter(runner).scan("/tmp/src")
+    assert [f.title for f in findings] == ["android.cleartext", "android.weak-crypto"]
+
+
+def test_opengrep_scan_uses_local_ruleset_when_present(tmp_path, monkeypatch):
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.setattr(
+        "centurion.adapters.generic.opengrep.default_rules_path", lambda: rules
+    )
+    runner = FakeRunner()
+    runner.register("opengrep scan --config", stdout=SAMPLE_JSON)
+    OpengrepAdapter(runner).scan("/tmp/src")
+    assert runner.calls[-1] == OpengrepAdapter().scan_command("/tmp/src", str(rules))

@@ -61,11 +61,27 @@ class OpengrepAdapter(Adapter):
         return findings
 
     def scan(self, target: str, rules: str | None = None) -> list[Finding]:
-        rules_path = rules or str(default_rules_path())
-        if not Path(rules_path).exists():
-            raise RuntimeError(
-                f"opengrep rules not found at '{rules_path}'. Install a ruleset there "
-                "or pass an explicit rules path. See `centurion doctor`."
-            )
+        if rules:
+            # An explicit path the caller named is a real error if it's
+            # wrong — surface it, don't silently fall back to something else.
+            if not Path(rules).exists():
+                raise RuntimeError(
+                    f"opengrep rules not found at '{rules}'. Install a ruleset there "
+                    "or pass an existing rules path. See `centurion doctor`."
+                )
+            rules_path = rules
+        else:
+            rules_path = self._default_rules_path_or_auto()
         result = self.runner.run(self.scan_command(target, rules_path), timeout=900)
         return self.parse_scan(result.stdout)
+
+    def _default_rules_path_or_auto(self) -> str:
+        """No explicit rules path given. Prefer the locally installed
+        MASTG-curated ruleset; fall back to opengrep's own registry
+        auto-config ("auto", the same default plain `opengrep scan` uses)
+        when none is installed, instead of refusing to scan at all — a scan
+        with the community ruleset is strictly better than no scan."""
+        local = default_rules_path()
+        if local.exists():
+            return str(local)
+        return "auto"

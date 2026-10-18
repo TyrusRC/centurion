@@ -16,3 +16,4 @@ venv/
 # Local design docs + session scratch (match chimera/mantis convention)
 docs/
 .superpowers/
+uv.lock
