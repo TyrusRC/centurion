@@ -1,8 +1,6 @@
 # Centurion
 
-A mobile QA + penetration-testing toolkit. Centurion wraps the OWASP MASTG tool set
-(Android + iOS) and device/QA tooling like scrcpy behind one consistent layer: a CLI for
-daily use and an MCP server so Claude Code can drive it, with shipped skills and subagents.
+A mobile QA + penetration-testing toolkit with OWASP Mobile Top 10 2024 mapping and MASVS v2 L1/L2 automated verification. Centurion wraps the OWASP MASTG tool set (Android + iOS) and device/QA tooling like scrcpy behind one consistent layer: a CLI for daily use and an MCP server (42 tools) so Claude Code can drive it, with shipped skills and subagents.
 
 Centurion **wraps** existing tools — it shells out and parses their output into structured
 results. It does **not** reimplement them, auto-install them, or duplicate MobSF. Every tool
@@ -11,7 +9,14 @@ than fetching anything.
 
 ## Tool coverage
 
-26 adapters across Android, iOS, and platform-generic tooling:
+26 adapters + 3 security testing tools across Android, iOS, and platform-generic tooling:
+
+**Security testing (new):**
+- `fuzz_intents` — fuzz exported activities/services/receivers with malformed extras, detect crashes
+- `fuzz_deeplinks` — fuzz deep-link URIs with traversal/XSS/SSRF payloads
+- `verify_masvs` — automated MASVS L1/L2 verification with per-control pass/fail + Mobile Top 10 coverage
+
+**Adapters:**
 
 | Category | Android | iOS | Generic |
 |---|---|---|---|
