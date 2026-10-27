@@ -109,6 +109,14 @@ via `frida_run_script`.
 Adapters are unit-tested with an injectable subprocess runner, so the suite runs offline with
 no device or emulator.
 
+## Praetor Integration
+
+[Praetor](https://github.com/TyrusRC/praetor) registers centurion as a companion MCP server (`setup.sh` installs it). The `mobile-dynamic-agent` in praetor dispatches centurion tools for Frida hooking, SSL pinning bypass, deep-link abuse, and APK static analysis. Findings from centurion cite `apk_sha256` / `package_name` and feed into praetor's save-finding pipeline.
+
+```
+praetor agent: mobile-dynamic-agent → centurion MCP: frida_run, decompile_apk, app_control
+```
+
 ## Legal / ethical scope
 
 Centurion is for **authorized** mobile security testing and QA only — pentest engagements,
