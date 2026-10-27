@@ -114,6 +114,29 @@ via `frida_run_script`.
 Adapters are unit-tested with an injectable subprocess runner, so the suite runs offline with
 no device or emulator.
 
+## Chimera Integration
+
+[Chimera](https://github.com/TyrusRC/chimera) (the RE MCP server) bridges centurion's
+tools into its own MCP surface via two tools:
+
+- **`centurion_tools`** — lists all 26 adapters with install status, version, and hints
+- **`centurion_run`** — executes any centurion MCP tool by name, passing `target` and
+  additional arguments
+
+This lets an RE agent use centurion's mobile toolkit without switching MCP servers:
+
+```python
+# From chimera MCP:
+centurion_tools()                              # see what's installed
+centurion_run(command="static_decode", target="myapp", args={"apk": "/path/to/app.apk"})
+centurion_run(command="apkid_scan", target="myapp", args={"apk": "/path/to/app.apk"})
+centurion_run(command="apkleaks_scan", target="myapp", args={"apk": "/path/to/app.apk"})
+centurion_run(command="ssl_unpin", target="myapp", args={"target_app": "com.example.app"})
+```
+
+The chimera `sast-workflow` skill guides the agent through the RE→centurion→mantis
+pipeline: analyze binary → extract APK → centurion static analysis → mantis SAST audit.
+
 ## Praetor Integration
 
 [Praetor](https://github.com/TyrusRC/praetor) registers centurion as a companion MCP server (`setup.sh` installs it). The `mobile-dynamic-agent` in praetor dispatches centurion tools for Frida hooking, SSL pinning bypass, deep-link abuse, and APK static analysis. Findings from centurion cite `apk_sha256` / `package_name` and feed into praetor's save-finding pipeline.
