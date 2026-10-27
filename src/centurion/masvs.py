@@ -57,3 +57,80 @@ def enrich(findings: list[dict]) -> list[dict]:
 def category_of(control: str) -> str:
     # "MASVS-CRYPTO-1" -> "MASVS-CRYPTO"
     return control.rsplit("-", 1)[0] if control else control
+
+
+# ── OWASP Mobile Top 10 (2024) ──────────────────────────────────────
+
+MOBILE_TOP10_2024: dict[str, str] = {
+    "M1": "Improper Credential Usage",
+    "M2": "Inadequate Supply Chain Security",
+    "M3": "Insecure Authentication/Authorization",
+    "M4": "Insufficient Input/Output Validation",
+    "M5": "Insecure Communication",
+    "M6": "Inadequate Privacy Controls",
+    "M7": "Insufficient Binary Protections",
+    "M8": "Security Misconfiguration",
+    "M9": "Insecure Data Storage",
+    "M10": "Insufficient Cryptography",
+}
+
+# MASVS category → Mobile Top 10 mapping.
+_MASVS_TO_TOP10: dict[str, str] = {
+    "MASVS-AUTH": "M3",
+    "MASVS-STORAGE": "M9",
+    "MASVS-CRYPTO": "M10",
+    "MASVS-NETWORK": "M5",
+    "MASVS-PLATFORM": "M4",
+    "MASVS-CODE": "M8",
+    "MASVS-RESILIENCE": "M7",
+    "MASVS-PRIVACY": "M6",
+}
+
+# Tool/finding-id patterns → Mobile Top 10 (when no MASVS ref available).
+_TOOL_TO_TOP10: dict[str, str] = {
+    "gitleaks": "M1",
+    "apkleaks": "M1",
+    "apkid": "M2",
+    "otool:no-pie": "M7",
+    "otool:not-encrypted": "M7",
+    "otool:no-canary": "M7",
+    "drozer": "M8",
+    "objection": "M3",
+    "frida": "M3",
+    "mitmproxy": "M5",
+    "tcpdump": "M5",
+    "mantis": "M4",
+}
+
+
+def mobile_top10_for(finding: dict) -> list[str]:
+    """Map a finding to OWASP Mobile Top 10 2024 category numbers."""
+    categories: list[str] = []
+
+    # Route via MASVS refs first.
+    for control in masvs_for(finding):
+        cat = category_of(control)
+        m = _MASVS_TO_TOP10.get(cat)
+        if m and m not in categories:
+            categories.append(m)
+    if categories:
+        return categories
+
+    # Fallback: tool or finding-id prefix.
+    fid = finding.get("id", "")
+    for prefix, m in _TOOL_TO_TOP10.items():
+        if ":" in prefix and fid.startswith(prefix):
+            return [m]
+    tool = finding.get("tool", "")
+    m = _TOOL_TO_TOP10.get(tool)
+    return [m] if m else []
+
+
+def enrich_top10(findings: list[dict]) -> list[dict]:
+    """Annotate each finding with its OWASP Mobile Top 10 2024 refs."""
+    result = []
+    for f in findings:
+        refs = mobile_top10_for(f)
+        labels = [f"{m}: {MOBILE_TOP10_2024.get(m, '')}" for m in refs]
+        result.append({**f, "mobile_top10": refs, "mobile_top10_labels": labels})
+    return result

@@ -96,3 +96,8 @@ class Workspace:
         session = self.load()
         session.findings.append(finding.to_dict())
         self.save(session)
+
+    def load_findings(self) -> list[dict]:
+        """Return all stored findings as dicts (for enrichment/verification)."""
+        session = self.load()
+        return list(session.findings)

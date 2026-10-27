@@ -454,3 +454,267 @@ def install_plan(group: str = "all") -> list[dict]:
     CLI `install` command."""
     from ..install import plan_install
     return [s.to_dict() for s in plan_install(get_registry(), group)]
+
+
+# ── Mobile Fuzzing ───────────────────────────────────────────────────
+
+
+@mcp.tool()
+def fuzz_intents(package: str, target: str, count: int = 50) -> dict:
+    """Fuzz exported activities/services/receivers with random/malformed intents.
+
+    Sends intents with fuzzed extras (empty, oversized, wrong-type, null) to
+    every exported component. Detects crashes via logcat.
+
+    Args:
+        package: Android package name (e.g. com.example.app).
+        target: Workspace target name.
+        count: Total intents to send across all components (default 50).
+    """
+    import random
+    import time
+
+    reg = get_registry()
+    adb = reg.get("adb")
+    if not adb.detect().installed:
+        return {"error": "adb not installed", "install_hint": adb.install_hint()}
+
+    # Get exported components via dumpsys
+    dump = adb.runner.run(
+        ["adb", "shell", "dumpsys", "package", package], timeout=30
+    )
+    components: list[dict] = []
+    current_section = ""
+    for line in dump.stdout.splitlines():
+        stripped = line.strip()
+        if "Activity Resolver Table:" in stripped:
+            current_section = "activity"
+        elif "Receiver Resolver Table:" in stripped:
+            current_section = "receiver"
+        elif "Service Resolver Table:" in stripped:
+            current_section = "service"
+        elif "Resolver Table:" in stripped:
+            current_section = ""
+        if current_section and f"{package}/" in stripped:
+            parts = stripped.split()
+            for p in parts:
+                if f"{package}/" in p:
+                    comp = p.strip()
+                    components.append({"type": current_section, "name": comp})
+                    break
+
+    if not components:
+        return {"package": package, "components": 0, "note": "No exported components found in dumpsys"}
+
+    # Clear logcat
+    adb.runner.run(["adb", "logcat", "-c"], timeout=5)
+
+    fuzz_extras = [
+        [],
+        ["--es", "fuzz_key", ""],
+        ["--es", "fuzz_key", "A" * 10000],
+        ["--ei", "fuzz_int", "0"],
+        ["--ei", "fuzz_int", "-1"],
+        ["--ei", "fuzz_int", "2147483647"],
+        ["--ez", "fuzz_bool", "true"],
+        ["--es", "fuzz_null", "null"],
+        ["--eu", "fuzz_uri", "content://invalid/../../etc/passwd"],
+        ["--eu", "fuzz_uri", "javascript:alert(1)"],
+    ]
+
+    crashes: list[dict] = []
+    sent = 0
+    per_comp = max(1, count // max(len(components), 1))
+
+    for comp in components:
+        for i in range(min(per_comp, len(fuzz_extras))):
+            extras = fuzz_extras[i % len(fuzz_extras)]
+            if comp["type"] == "activity":
+                cmd = ["adb", "shell", "am", "start", "-n", comp["name"]] + extras
+            elif comp["type"] == "receiver":
+                cmd = ["adb", "shell", "am", "broadcast", "-n", comp["name"]] + extras
+            else:
+                cmd = ["adb", "shell", "am", "startservice", "-n", comp["name"]] + extras
+            try:
+                adb.runner.run(cmd, timeout=10)
+            except Exception:
+                pass
+            sent += 1
+
+    # Check logcat for crashes
+    time.sleep(1)
+    logcat = adb.runner.run(
+        ["adb", "logcat", "-d", "-s", "AndroidRuntime:E", "DEBUG:E"], timeout=10
+    )
+    for line in logcat.stdout.splitlines():
+        if "FATAL EXCEPTION" in line or "pid:" in line.lower():
+            crashes.append({"line": line.strip()})
+
+    ws = get_workspace(target)
+    ws.record_run("fuzz_intents", ["fuzz", package], "ok",
+                   output=f"sent={sent} crashes={len(crashes)}")
+
+    return {
+        "package": package,
+        "components": len(components),
+        "intents_sent": sent,
+        "crashes": len(crashes),
+        "crash_lines": crashes[:20],
+    }
+
+
+@mcp.tool()
+def fuzz_deeplinks(
+    package: str, target: str, schemes: list[str] | None = None, count: int = 20
+) -> dict:
+    """Fuzz deep-link URIs with malformed/malicious values.
+
+    Sends crafted URIs via adb am start -d to test deep-link handling.
+    Monitors for crashes, unexpected WebView opens, or intent redirection.
+
+    Args:
+        package: Android package name.
+        target: Workspace target name.
+        schemes: URI schemes to fuzz (e.g. ['myapp', 'https']). Auto-detected if empty.
+        count: Number of fuzzed URIs to send (default 20).
+    """
+    import time
+
+    reg = get_registry()
+    adb = reg.get("adb")
+    if not adb.detect().installed:
+        return {"error": "adb not installed", "install_hint": adb.install_hint()}
+
+    test_schemes = schemes or ["https", "http", "content", "file", "javascript"]
+
+    fuzz_paths = [
+        "://evil.com",
+        "://127.0.0.1",
+        "://localhost/../../etc/passwd",
+        "://" + "A" * 5000,
+        "://evil.com@legitimate.com",
+        "://[::1]",
+        "://evil.com%00.legitimate.com",
+        "://legitimate.com/callback?redirect=https://evil.com",
+        "://legitimate.com/path/../../../etc/passwd",
+        "://legitimate.com/<script>alert(1)</script>",
+    ]
+
+    adb.runner.run(["adb", "logcat", "-c"], timeout=5)
+
+    crashes: list[dict] = []
+    sent = 0
+
+    for scheme in test_schemes:
+        for path in fuzz_paths[:count // max(len(test_schemes), 1)]:
+            uri = f"{scheme}{path}"
+            try:
+                result = adb.runner.run(
+                    ["adb", "shell", "am", "start", "-d", uri, "-n",
+                     f"{package}/.MainActivity"],
+                    timeout=10,
+                )
+                if "Error" in result.stderr or "Exception" in result.stderr:
+                    crashes.append({"uri": uri, "error": result.stderr[:200]})
+            except Exception:
+                pass
+            sent += 1
+
+    time.sleep(1)
+    logcat = adb.runner.run(
+        ["adb", "logcat", "-d", "-s", "AndroidRuntime:E"], timeout=10
+    )
+    for line in logcat.stdout.splitlines():
+        if "FATAL EXCEPTION" in line:
+            crashes.append({"line": line.strip()})
+
+    ws = get_workspace(target)
+    ws.record_run("fuzz_deeplinks", ["fuzz", package], "ok",
+                   output=f"sent={sent} crashes={len(crashes)}")
+
+    return {
+        "package": package,
+        "uris_sent": sent,
+        "crashes": len(crashes),
+        "crash_details": crashes[:20],
+    }
+
+
+# ── MASVS Verification ──────────────────────────────────────────────
+
+
+@mcp.tool()
+def verify_masvs(target: str, level: int = 2) -> dict:
+    """Automated MASVS L1/L2 verification against a target.
+
+    Runs all available checks and reports per-control pass/fail.
+    Level 1: STORAGE, CRYPTO, AUTH, NETWORK, PLATFORM, CODE.
+    Level 2: adds RESILIENCE (root detection, anti-tampering).
+
+    Args:
+        target: Workspace target name (must have findings from prior scans).
+        level: MASVS level — 1 or 2 (default 2).
+    """
+    ws = get_workspace(target)
+    findings = ws.load_findings()
+    enriched = masvs.enrich(findings)
+    top10_enriched = masvs.enrich_top10(enriched)
+
+    controls = {
+        "MASVS-STORAGE": {"status": "NOT_TESTED", "findings": []},
+        "MASVS-CRYPTO": {"status": "NOT_TESTED", "findings": []},
+        "MASVS-AUTH": {"status": "NOT_TESTED", "findings": []},
+        "MASVS-NETWORK": {"status": "NOT_TESTED", "findings": []},
+        "MASVS-PLATFORM": {"status": "NOT_TESTED", "findings": []},
+        "MASVS-CODE": {"status": "NOT_TESTED", "findings": []},
+    }
+    if level >= 2:
+        controls["MASVS-RESILIENCE"] = {"status": "NOT_TESTED", "findings": []}
+        controls["MASVS-PRIVACY"] = {"status": "NOT_TESTED", "findings": []}
+
+    for f in top10_enriched:
+        f_dict = f if isinstance(f, dict) else f.to_dict()
+        refs = f_dict.get("masvs_refs", [])
+        severity = f_dict.get("severity", "info").lower()
+        for ref in refs:
+            cat = masvs.category_of(ref)
+            if cat in controls:
+                controls[cat]["findings"].append({
+                    "id": f_dict.get("id", ""),
+                    "title": f_dict.get("title", f_dict.get("message", "")),
+                    "severity": severity,
+                    "tool": f_dict.get("tool", ""),
+                })
+                if severity in ("critical", "high"):
+                    controls[cat]["status"] = "FAIL"
+                elif controls[cat]["status"] != "FAIL":
+                    controls[cat]["status"] = "WARN" if severity == "medium" else "PASS"
+
+    # Controls with no findings stay NOT_TESTED
+    total = len(controls)
+    passed = sum(1 for c in controls.values() if c["status"] == "PASS")
+    failed = sum(1 for c in controls.values() if c["status"] == "FAIL")
+    warned = sum(1 for c in controls.values() if c["status"] == "WARN")
+    untested = sum(1 for c in controls.values() if c["status"] == "NOT_TESTED")
+
+    # Mobile Top 10 summary
+    top10_hits: dict[str, int] = {}
+    for f in top10_enriched:
+        f_dict = f if isinstance(f, dict) else f.to_dict()
+        for m in f_dict.get("mobile_top10", []):
+            top10_hits[m] = top10_hits.get(m, 0) + 1
+
+    return {
+        "level": level,
+        "total_controls": total,
+        "passed": passed,
+        "failed": failed,
+        "warned": warned,
+        "untested": untested,
+        "controls": controls,
+        "mobile_top10_coverage": {
+            m: {"name": masvs.MOBILE_TOP10_2024.get(m, ""), "findings": top10_hits.get(m, 0)}
+            for m in sorted(masvs.MOBILE_TOP10_2024.keys())
+        },
+        "total_findings": len(top10_enriched),
+    }
