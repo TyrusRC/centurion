@@ -2,7 +2,7 @@ import plistlib
 import zipfile
 from pathlib import Path
 
-from centurion.ios.ipa import read_plist, ipa_info
+from centurion.ios.ipa import ipa_info, read_plist
 
 
 def test_read_plist_binary(tmp_path: Path):

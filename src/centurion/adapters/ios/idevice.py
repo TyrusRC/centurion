@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ...models import Artifact, AppleDevice, Category, Platform
+from ...models import AppleDevice, Artifact, Category, Platform
 from ..base import Adapter
 
 

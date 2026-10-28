@@ -7,7 +7,7 @@ from .build import build_report
 from .html import render_html
 from .markdown import render_markdown
 
-__all__ = ["build_report", "render_html", "render_markdown", "generate"]
+__all__ = ["build_report", "generate", "render_html", "render_markdown"]
 
 
 def generate(workspace, fmt: str = "both") -> dict[str, str]:

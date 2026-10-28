@@ -6,7 +6,7 @@ import subprocess
 from abc import ABC, abstractmethod
 
 from ..models import Category, Platform, ToolStatus
-from ..process import RealRunner, RunResult, Runner
+from ..process import RealRunner, Runner, RunResult
 
 
 class Adapter(ABC):

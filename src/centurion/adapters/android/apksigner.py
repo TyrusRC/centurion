@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 import re
-
 from dataclasses import asdict, dataclass
 from typing import Any
 
 from ...models import Category, Platform
 from ..base import Adapter
 
-
-_SCHEME_RE = re.compile(r"using (v\d) scheme[^:]*:\s*(true|false)", re.I)
+_SCHEME_RE = re.compile(r"using (v\d) scheme[^:]*:\s*(true|false)", re.IGNORECASE)
 
 
 @dataclass

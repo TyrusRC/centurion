@@ -10,8 +10,9 @@ import os
 import shutil
 import signal
 import subprocess
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 
 
 @dataclass

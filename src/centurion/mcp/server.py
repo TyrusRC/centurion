@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 
-from .. import haruspex
-from .. import masvs
-from .. import report
+from .. import haruspex, masvs, report
 from .. import session as session
 from ..ios.ipa import ipa_info, read_plist
 from ..models import Finding
@@ -471,7 +469,6 @@ def fuzz_intents(package: str, target: str, count: int = 50) -> dict:
         target: Workspace target name.
         count: Total intents to send across all components (default 50).
     """
-    import random
     import time
 
     reg = get_registry()

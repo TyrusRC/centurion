@@ -1,5 +1,5 @@
 from centurion.adapters.base import Adapter
-from centurion.models import Platform, Category
+from centurion.models import Category, Platform
 from centurion.process import FakeRunner
 
 

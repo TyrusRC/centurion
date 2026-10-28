@@ -1,5 +1,10 @@
 from centurion.models import (
-    Platform, Category, Severity, ToolStatus, Artifact, Finding,
+    Artifact,
+    Category,
+    Finding,
+    Platform,
+    Severity,
+    ToolStatus,
 )
 
 

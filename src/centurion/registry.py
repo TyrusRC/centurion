@@ -53,8 +53,8 @@ def default_registry(runner: Runner | None = None) -> Registry:
     from .adapters.generic.mantis import MantisAdapter
     from .adapters.generic.mitmproxy import MitmproxyAdapter
     from .adapters.generic.nm import NmAdapter
-    from .adapters.generic.radare2 import Radare2Adapter
     from .adapters.generic.opengrep import OpengrepAdapter
+    from .adapters.generic.radare2 import Radare2Adapter
     from .adapters.generic.strings import StringsAdapter
     from .adapters.generic.tcpdump import TcpdumpAdapter
     from .adapters.ios.classdump import ClassDumpAdapter

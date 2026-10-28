@@ -8,7 +8,7 @@ from centurion.session import Workspace
 def _seed(tmp_path):
     ws = Workspace(tmp_path, "com.example.app")
     ws.create()
-    from centurion.models import Finding, Artifact
+    from centurion.models import Artifact, Finding
     ws.add_finding(Finding(id="otool:no-pie:/a", title="No PIE", severity="medium",
                            tool="otool", detail="no aslr", location="/a"))
     ws.add_finding(Finding(id="gitleaks:key:1", title="AWS key", severity="high",

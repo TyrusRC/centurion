@@ -88,7 +88,8 @@ def report(
     format: str = typer.Option("both", help="both|md|html"),
 ) -> None:
     """Generate the Markdown + HTML report for a target workspace."""
-    from .. import report as _report, session as _session
+    from .. import report as _report
+    from .. import session as _session
 
     ws = _session.Workspace(_session.default_root(), target)
     ws.create()

@@ -1,8 +1,9 @@
+from typer.testing import CliRunner
+
 import centurion.cli.app as cli_app
 from centurion.adapters.android.adb import AdbAdapter
 from centurion.process import FakeRunner
 from centurion.registry import Registry
-from typer.testing import CliRunner
 
 runner = CliRunner()
 
@@ -36,8 +37,8 @@ def test_version():
 
 
 def _fake_registry_missing():
-    from centurion.registry import Registry
     from centurion.adapters.android.adb import AdbAdapter
+    from centurion.registry import Registry
     return Registry([AdbAdapter(FakeRunner())])  # adb not registered -> missing
 
 
