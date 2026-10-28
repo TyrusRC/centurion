@@ -80,3 +80,36 @@ def test_build_report_handles_empty_session(tmp_path):
     assert model["findings_by_category"] == {}
     md = report.render_markdown(model)   # must not raise
     assert "empty.app" in md
+
+
+def test_build_report_includes_mobile_top10_coverage(tmp_path):
+    # seed has a gitleaks finding (-> M9) and an otool no-pie finding (-> M7).
+    model = report.build_report(_seed(tmp_path))
+    cov = {row["ref"]: row for row in model["top10_coverage"]}
+    assert cov["M9"]["count"] == 1
+    assert cov["M9"]["name"] == "Insecure Data Storage"
+    assert cov["M7"]["count"] == 1
+    # only categories with findings are listed
+    assert "M1" not in cov
+
+
+def test_render_markdown_contains_mobile_top10_section(tmp_path):
+    md = report.render_markdown(report.build_report(_seed(tmp_path)))
+    assert "OWASP Mobile Top 10" in md
+    assert "M9" in md
+    assert "Insecure Data Storage" in md
+
+
+def test_render_html_contains_mobile_top10_section(tmp_path):
+    html = report.render_html(report.build_report(_seed(tmp_path)))
+    assert "OWASP Mobile Top 10" in html
+    assert "Insecure Data Storage" in html
+
+
+def test_empty_session_has_no_top10_rows(tmp_path):
+    ws = Workspace(tmp_path, "empty.app")
+    ws.create()
+    model = report.build_report(ws)
+    assert model["top10_coverage"] == []
+    report.render_markdown(model)  # must not raise
+    report.render_html(model)      # must not raise

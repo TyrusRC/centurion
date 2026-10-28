@@ -27,6 +27,15 @@ def render_markdown(model: dict) -> str:
         lines.append("_No findings recorded._")
     lines.append("")
 
+    if model.get("top10_coverage"):
+        lines.append("## OWASP Mobile Top 10 (2024)")
+        lines.append("")
+        lines.append("| Category | Findings |")
+        lines.append("| --- | --- |")
+        for row in model["top10_coverage"]:
+            lines.append(f"| {row['ref']}: {row['name']} | {row['count']} |")
+        lines.append("")
+
     lines.append("## Findings")
     lines.append("")
     for category, items in sorted(model["findings_by_category"].items()):

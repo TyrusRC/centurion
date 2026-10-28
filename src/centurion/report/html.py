@@ -38,6 +38,14 @@ def render_html(model: dict) -> str:
     else:
         parts.append("<p><em>No findings recorded.</em></p>")
 
+    if model.get("top10_coverage"):
+        parts.append("<h2>OWASP Mobile Top 10 (2024)</h2>")
+        parts.append("<table><tr><th>Category</th><th>Findings</th></tr>")
+        for row in model["top10_coverage"]:
+            parts.append(f"<tr><td>{e(row['ref'])}: {e(row['name'])}</td>"
+                         f"<td>{row['count']}</td></tr>")
+        parts.append("</table>")
+
     parts.append("<h2>Findings</h2>")
     for category, items in sorted(model["findings_by_category"].items()):
         parts.append(f"<h3>{e(category)}</h3><ul>")

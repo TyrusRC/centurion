@@ -26,6 +26,18 @@ def build_report(workspace) -> dict:
         items.sort(key=lambda f: _SEVERITY_ORDER.get(f.get("severity", "info"), 9))
 
     coverage = [{"category": c, "count": len(v)} for c, v in sorted(by_category.items())]
+
+    # OWASP Mobile Top 10 (2024) coverage: tally findings per category, list only
+    # those actually hit, ordered M1..M10 (numeric, so M10 sorts after M9).
+    top10_hits: dict[str, int] = {}
+    for f in masvs.enrich_top10(findings):
+        for ref in f.get("mobile_top10") or []:
+            top10_hits[ref] = top10_hits.get(ref, 0) + 1
+    top10_coverage = [
+        {"ref": ref, "name": masvs.MOBILE_TOP10_2024.get(ref, ""), "count": count}
+        for ref, count in sorted(top10_hits.items(), key=lambda kv: int(kv[0][1:]))
+    ]
+
     screenshots = [a for a in session.artifacts if a.get("kind") == "screenshot"]
 
     return {
@@ -35,6 +47,7 @@ def build_report(workspace) -> dict:
         "severity_counts": severity_counts,
         "findings_by_category": by_category,
         "coverage": coverage,
+        "top10_coverage": top10_coverage,
         "screenshots": screenshots,
         "runs": session.runs,
     }

@@ -31,3 +31,38 @@ def test_enrich_adds_masvs_refs_without_mutating_input():
 
 def test_category_of_strips_control_number():
     assert masvs.category_of("MASVS-CRYPTO-1") == "MASVS-CRYPTO"
+
+
+# ── OWASP Mobile Top 10 (2024) mapping ──────────────────────────────
+
+def test_mobile_top10_via_mastg_ref():
+    # MASTG-TEST-0014 -> MASVS-NETWORK-1 -> M5 (Insecure Communication)
+    finding = {"id": "rule:a:1", "tool": "opengrep", "mastg_refs": ["MASTG-TEST-0014"]}
+    assert masvs.mobile_top10_for(finding) == ["M5"]
+
+
+def test_mobile_top10_routes_through_tool_default_masvs():
+    # gitleaks has a MASVS default (STORAGE-1), so it routes via MASVS -> M9,
+    # not through the tool fallback table.
+    finding = {"id": "gitleaks:k:1", "tool": "gitleaks", "mastg_refs": []}
+    assert masvs.mobile_top10_for(finding) == ["M9"]
+    otool = {"id": "otool:no-pie:/a", "tool": "otool", "mastg_refs": []}
+    assert masvs.mobile_top10_for(otool) == ["M7"]
+
+
+def test_mobile_top10_tool_fallback_when_no_masvs():
+    # drozer has no MASVS default, so the tool fallback table applies.
+    assert masvs.mobile_top10_for({"id": "drozer:x", "tool": "drozer"}) == ["M8"]
+    assert masvs.mobile_top10_for({"id": "objection:x", "tool": "objection"}) == ["M3"]
+
+
+def test_mobile_top10_unknown_is_empty():
+    assert masvs.mobile_top10_for({"id": "x:y", "tool": "mystery"}) == []
+
+
+def test_enrich_top10_adds_refs_and_labels_without_mutating_input():
+    src = [{"id": "gitleaks:k:1", "tool": "gitleaks", "mastg_refs": []}]
+    out = masvs.enrich_top10(src)
+    assert out[0]["mobile_top10"] == ["M9"]
+    assert out[0]["mobile_top10_labels"] == ["M9: Insecure Data Storage"]
+    assert "mobile_top10" not in src[0]  # input untouched
